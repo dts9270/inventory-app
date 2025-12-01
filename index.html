@@ -2,451 +2,559 @@
 <html lang="mr">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>सामान व्यवस्थापन</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>सामान व्यवस्थापन (Marathi Inventory)</title>
 
+<!-- Tailwind CDN for quick styling -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Firebase -->
+<!-- Firebase compat (simple single-file usage) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-<!-- PDF -->
+<!-- jsPDF for PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<!-- Excel -->
+<!-- SheetJS for Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-body { font-family:sans-serif; }
-.card { border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#FFF8ED; }
+  .card { border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+  .mar-small { font-size: .95rem; color:#444; }
 </style>
 </head>
+<body class="p-4">
 
-<body class="bg-amber-50 p-4 min-h-screen">
+<div class="max-w-lg mx-auto">
+  <h1 class="text-2xl font-bold text-amber-700 text-center mb-4">📦 सामान व्यवस्थापन (Marathi)</h1>
 
-<h1 class="text-center text-2xl font-bold text-amber-700 mb-4">
-📦 सामान व्यवस्थापन (Marathi Inventory)
-</h1>
+  <!-- AUTH BLOCK -->
+  <div id="authBlock" class="card bg-white p-4 mb-4">
+    <label class="font-semibold mar-small">फोन नंबर (10 अंक)</label>
+    <input id="phoneInput" class="w-full p-3 border rounded mt-1 mb-2" placeholder="उदा. 7020970727" inputmode="numeric" />
 
-<!-- LOGIN -->
-<div id="authBox" class="card bg-white p-4 mb-4">
-    <label class="font-semibold">फोन नंबर</label>
-    <input id="phoneInput" class="w-full p-3 border rounded mt-1" placeholder="7020970727" />
+    <div id="recaptcha-container" class="mb-2"></div>
 
-    <div id="recaptcha-container"></div>
+    <button id="sendOtpBtn" class="w-full bg-amber-600 text-white p-3 rounded">OTP पाठवा</button>
 
-    <button id="sendOtpBtn" class="w-full bg-amber-600 text-white p-3 rounded mt-3">
-        OTP पाठवा
-    </button>
+    <input id="otpInput" class="w-full p-3 border rounded mt-3" placeholder="OTP टाका" inputmode="numeric" />
+    <button id="verifyOtpBtn" class="w-full bg-green-600 text-white p-3 rounded mt-2">लॉगिन</button>
+    <p class="text-xs text-gray-500 mt-2">टीप: OTP फंक्शनिंग फक्त HTTPS साइटवर चालेल (GitHub Pages वापरा).</p>
+  </div>
 
-    <input id="otpInput" class="w-full p-3 border rounded mt-3" placeholder="OTP टाका" />
-    <button id="verifyOtpBtn" class="w-full bg-green-600 text-white p-3 rounded mt-3">
-        लॉगिन
-    </button>
-</div>
-
-<!-- LOGGED IN -->
-<div id="userBox" class="hidden card bg-white p-4 mb-4">
-    <div class="flex justify-between">
-        <div>
-            <p id="userPhone" class="font-bold"></p>
-            <p id="userRole" class="text-sm"></p>
-        </div>
-        <button id="logoutBtn" class="bg-gray-300 px-3 py-2 rounded">Logout</button>
+  <!-- USER INFO -->
+  <div id="userBox" class="card bg-white p-4 mb-4 hidden">
+    <div class="flex justify-between items-center">
+      <div>
+        <div id="userPhone" class="font-bold"></div>
+        <div id="userRole" class="text-sm text-gray-600"></div>
+      </div>
+      <div class="flex gap-2">
+        <button id="logoutBtn" class="px-3 py-2 bg-gray-200 rounded">Logout</button>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- TABS -->
-<div id="tabs" class="flex gap-2 mb-3 hidden">
+  <!-- TABS -->
+  <div id="tabs" class="flex gap-2 mb-4 hidden">
     <button id="tabIn" class="flex-1 bg-amber-600 text-white p-3 rounded">IN</button>
     <button id="tabOut" class="flex-1 bg-white border p-3 rounded">OUT</button>
     <button id="tabRep" class="flex-1 bg-white border p-3 rounded">रिपोर्ट</button>
-</div>
+  </div>
 
-<!-- IN PANEL -->
-<div id="panelIn" class="card bg-white p-4 mb-4 hidden">
-<h2 class="text-xl font-bold mb-3">IN — सामान घेतले</h2>
+  <!-- IN PANEL -->
+  <div id="panelIn" class="card bg-white p-4 mb-4 hidden">
+    <h2 class="font-bold text-lg mb-2">IN — सामान घेतले</h2>
+    <form id="inForm" class="space-y-3">
+      <input id="inDate" type="date" class="w-full p-3 border rounded" />
+      <input id="inFrom" class="w-full p-3 border rounded" placeholder="कोणाकडून" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="inTotal" type="number" class="p-3 border rounded" placeholder="एकूण (₹)" />
+        <input id="inPaid" type="number" class="p-3 border rounded" placeholder="भरले (₹)" />
+      </div>
+      <select id="inPayType" class="w-full p-3 border rounded">
+        <option>Cash</option><option>Online</option><option>Baki</option>
+      </select>
+      <input id="inFile" type="file" accept="image/*,application/pdf" class="w-full" />
+      <div class="flex gap-2">
+        <button type="submit" class="flex-1 bg-amber-600 text-white p-3 rounded">IN नोंदवा</button>
+        <button id="inClear" type="button" class="flex-1 bg-gray-200 p-3 rounded">रिसेट</button>
+      </div>
+    </form>
+    <div class="mt-3">
+      <h3 class="font-semibold">ताज्या IN नोंदी</h3>
+      <div id="recentIn" class="text-sm mt-2"></div>
+    </div>
+  </div>
 
-<form id="inForm" class="space-y-3">
-    <input id="inDate" type="date" class="w-full p-3 border rounded" />
-    <input id="inFrom" class="w-full p-3 border rounded" placeholder="कोणाकडून" />
+  <!-- OUT PANEL -->
+  <div id="panelOut" class="card bg-white p-4 mb-4 hidden">
+    <h2 class="font-bold text-lg mb-2">OUT — सामान दिले</h2>
+    <form id="outForm" class="space-y-3">
+      <input id="outDate" type="date" class="w-full p-3 border rounded" />
+      <input id="outTo" class="w-full p-3 border rounded" placeholder="कोणाला" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="outTotal" type="number" class="p-3 border rounded" placeholder="एकूण (₹)" />
+        <input id="outPaid" type="number" class="p-3 border rounded" placeholder="भरले (₹)" />
+      </div>
+      <select id="outPayType" class="w-full p-3 border rounded">
+        <option>Cash</option><option>Online</option><option>Baki</option>
+      </select>
+      <input id="outFile" type="file" accept="image/*,application/pdf" class="w-full" />
+      <div class="flex gap-2">
+        <button type="submit" class="flex-1 bg-blue-600 text-white p-3 rounded">OUT नोंदवा</button>
+        <button id="outClear" type="button" class="flex-1 bg-gray-200 p-3 rounded">रिसेट</button>
+      </div>
+    </form>
+    <div class="mt-3">
+      <h3 class="font-semibold">ताज्या OUT नोंदी</h3>
+      <div id="recentOut" class="text-sm mt-2"></div>
+    </div>
+  </div>
 
-    <div class="grid grid-cols-2 gap-3">
-        <input id="inTotal" type="number" class="p-3 border rounded" placeholder="एकूण" />
-        <input id="inPaid" type="number" class="p-3 border rounded" placeholder="भरले" />
+  <!-- REPORT PANEL -->
+  <div id="panelRep" class="card bg-white p-4 mb-4 hidden">
+    <h2 class="font-bold text-lg mb-2">📊 रिपोर्ट</h2>
+    <input id="filterName" class="w-full p-3 border rounded mb-2" placeholder="नाव (ग्राहक/पुरवठादार)"/>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <input id="filterFrom" type="date" class="p-3 border rounded" />
+      <input id="filterTo" type="date" class="p-3 border rounded" />
     </div>
 
-    <select id="inType" class="w-full p-3 border rounded">
-        <option>Cash</option>
-        <option>Online</option>
-        <option>Baki</option>
-    </select>
+    <div id="reportStats" class="text-sm mb-3"></div>
 
-    <input id="inFile" type="file" class="w-full" />
-
-    <button class="w-full bg-amber-600 text-white p-3 rounded">जतन करा</button>
-</form>
-
-<div id="recentIn" class="mt-3 text-sm"></div>
-</div>
-
-<!-- OUT PANEL -->
-<div id="panelOut" class="card bg-white p-4 mb-4 hidden">
-<h2 class="text-xl font-bold mb-3">OUT — सामान दिले</h2>
-
-<form id="outForm" class="space-y-3">
-    <input id="outDate" type="date" class="w-full p-3 border rounded" />
-    <input id="outTo" class="w-full p-3 border rounded" placeholder="कोणाला" />
-
-    <div class="grid grid-cols-2 gap-3">
-        <input id="outTotal" type="number" class="p-3 border rounded" placeholder="एकूण" />
-        <input id="outPaid" type="number" class="p-3 border rounded" placeholder="भरले" />
+    <div class="flex gap-2">
+      <button id="exportPdfBtn" class="flex-1 bg-gray-700 text-white p-3 rounded">PDF</button>
+      <button id="exportExcelBtn" class="flex-1 bg-green-600 text-white p-3 rounded">Excel</button>
     </div>
 
-    <select id="outType" class="w-full p-3 border rounded">
-        <option>Cash</option>
-        <option>Online</option>
-        <option>Baki</option>
-    </select>
+    <div class="flex gap-2 mt-3">
+      <button id="backupBtn" class="flex-1 bg-purple-600 text-white p-3 rounded">📥 Backup</button>
+      <button id="restoreBtn" class="flex-1 bg-orange-600 text-white p-3 rounded">📤 Restore</button>
+    </div>
+    <input id="restoreFileInput" type="file" accept="application/json" class="hidden" />
 
-    <input id="outFile" type="file" class="w-full" />
+    <button id="dailyPdfBtn" class="w-full bg-red-600 text-white p-3 rounded mt-3">📅 आजचा Daily Summary PDF</button>
+  </div>
 
-    <button class="w-full bg-blue-600 text-white p-3 rounded">जतन करा</button>
-</form>
-
-<div id="recentOut" class="mt-3 text-sm"></div>
-</div>
-
-<!-- REPORT PANEL -->
-<div id="panelRep" class="card bg-white p-4 mb-4 hidden">
-
-<h2 class="text-xl font-bold mb-3">📊 रिपोर्ट</h2>
-
-<input id="filterName" class="w-full p-3 border rounded mb-2" placeholder="नाव शोधा" />
-<input id="filterFrom" type="date" class="w-full p-3 border rounded mb-2" />
-<input id="filterTo" type="date" class="w-full p-3 border rounded mb-2" />
-
-<div id="reportStats" class="mt-3 text-sm"></div>
-
-<div class="flex gap-2 mt-4">
-    <button id="exportPdfBtn" class="flex-1 bg-gray-700 text-white p-3 rounded">PDF</button>
-    <button id="exportCsvBtn" class="flex-1 bg-green-600 text-white p-3 rounded">Excel</button>
-</div>
-
-<!-- PART–5 Buttons -->
-<div class="flex gap-2 mt-3">
-    <button id="backupBtn" class="flex-1 bg-purple-600 text-white p-3 rounded">📥 Backup</button>
-    <button id="restoreBtn" class="flex-1 bg-orange-600 text-white p-3 rounded">📤 Restore</button>
-</div>
-
-<input id="restoreFileInput" type="file" accept="application/json" class="hidden">
-
-<!-- PART–6 Daily Summary -->
-<button id="dailyPdfBtn" class="w-full bg-red-600 text-white p-3 rounded mt-3">
-📅 Daily Summary PDF
-</button>
-
+  <p class="text-center text-sm text-gray-600 mt-2">© Inventory App • Admin: 7020970727</p>
 </div>
 
 <script>
+/* ================= Firebase config (user provided) ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
+  authDomain: "product-buy-sell.firebaseapp.com",
+  projectId: "product-buy-sell",
+  storageBucket: "product-buy-sell.firebasestorage.app",
+  messagingSenderId: "815213852798",
+  appId: "1:815213852798:web:d347aec03aa3a46ba3802f"
+};
 
-// FIREBASE INIT
-firebase.initializeApp({
-  apiKey:"AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
-  authDomain:"product-buy-sell.firebaseapp.com",
-  projectId:"product-buy-sell",
-  storageBucket:"product-buy-sell.firebasestorage.app",
-  messagingSenderId:"815213852798",
-  appId:"1:815213852798:web:d347aec03aa3a46ba3802f"
-});
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-const auth=firebase.auth();
-const db=firebase.firestore();
-const storage=firebase.storage();
+/* ================= Helpers & UI refs ================= */
+const authBlock = document.getElementById('authBlock');
+const userBox = document.getElementById('userBox');
+const tabs = document.getElementById('tabs');
+const tabIn = document.getElementById('tabIn');
+const tabOut = document.getElementById('tabOut');
+const tabRep = document.getElementById('tabRep');
+const panelIn = document.getElementById('panelIn');
+const panelOut = document.getElementById('panelOut');
+const panelRep = document.getElementById('panelRep');
 
+const phoneInput = document.getElementById('phoneInput');
+const sendOtpBtn = document.getElementById('sendOtpBtn');
+const otpInput = document.getElementById('otpInput');
+const verifyOtpBtn = document.getElementById('verifyOtpBtn');
 
-// ================= Recaptcha FIX =================
-let recaptcha=null;
-function setupRecaptcha(){
-  if(recaptcha) return;
-  recaptcha=new firebase.auth.RecaptchaVerifier("recaptcha-container",{size:"invisible"});
-  recaptcha.render();
+const userPhone = document.getElementById('userPhone');
+const userRole = document.getElementById('userRole');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const inForm = document.getElementById('inForm');
+const inDate = document.getElementById('inDate');
+const inFrom = document.getElementById('inFrom');
+const inTotal = document.getElementById('inTotal');
+const inPaid = document.getElementById('inPaid');
+const inPayType = document.getElementById('inPayType');
+const inFile = document.getElementById('inFile');
+const recentIn = document.getElementById('recentIn');
+const inClear = document.getElementById('inClear');
+
+const outForm = document.getElementById('outForm');
+const outDate = document.getElementById('outDate');
+const outTo = document.getElementById('outTo');
+const outTotal = document.getElementById('outTotal');
+const outPaid = document.getElementById('outPaid');
+const outPayType = document.getElementById('outPayType');
+const outFile = document.getElementById('outFile');
+const recentOut = document.getElementById('recentOut');
+const outClear = document.getElementById('outClear');
+
+const filterName = document.getElementById('filterName');
+const filterFrom = document.getElementById('filterFrom');
+const filterTo = document.getElementById('filterTo');
+const reportStats = document.getElementById('reportStats');
+
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+const exportExcelBtn = document.getElementById('exportExcelBtn');
+const backupBtn = document.getElementById('backupBtn');
+const restoreBtn = document.getElementById('restoreBtn');
+const restoreFileInput = document.getElementById('restoreFileInput');
+const dailyPdfBtn = document.getElementById('dailyPdfBtn');
+
+/* ============ UI helpers ============ */
+function showPanel(name){
+  panelIn.classList.add('hidden'); panelOut.classList.add('hidden'); panelRep.classList.add('hidden');
+  tabIn.classList.remove('bg-amber-600','text-white'); tabOut.classList.remove('bg-amber-600','text-white'); tabRep.classList.remove('bg-amber-600','text-white');
+  if(name==='in'){ panelIn.classList.remove('hidden'); tabIn.classList.add('bg-amber-600','text-white'); }
+  if(name==='out'){ panelOut.classList.remove('hidden'); tabOut.classList.add('bg-amber-600','text-white'); }
+  if(name==='rep'){ panelRep.classList.remove('hidden'); tabRep.classList.add('bg-amber-600','text-white'); loadReports(); }
 }
 
-// ================= SEND OTP =================
-document.getElementById("sendOtpBtn").onclick=async()=>{
-  const mob=document.getElementById("phoneInput").value.trim();
-  if(!/^[0-9]{10}$/.test(mob)) return alert("वैध नंबर द्या");
-
-  setupRecaptcha();
+/* ============ reCAPTCHA + OTP safe handling ============ */
+/*
+  Important: ensure recaptcha not rendered twice.
+  We'll clear existing verifier before creating new one.
+*/
+async function clearRecaptchaIfAny(){
   try{
-    window.confirm=await auth.signInWithPhoneNumber("+91"+mob,recaptcha);
-    alert("OTP पाठवला");
-  }catch(e){ alert(e.message); }
-};
+    if(window.recaptchaVerifier){
+      // try to clear existing rendered widget if API available
+      if(window.recaptchaVerifier.clear) {
+        window.recaptchaVerifier.clear();
+      } else if(window.grecaptcha && window.grecaptcha.reset) {
+        // if grecaptcha available, reset by widget id if stored
+        if(window.__recaptchaWidgetId !== undefined) {
+          try{ window.grecaptcha.reset(window.__recaptchaWidgetId); }catch(e){}
+        }
+      }
+      window.recaptchaVerifier = null;
+      window.__recaptchaWidgetId = undefined;
+    }
+  }catch(e){
+    // ignore errors
+    console.warn('recaptcha clear err', e);
+    window.recaptchaVerifier = null;
+    window.__recaptchaWidgetId = undefined;
+  }
+}
 
-// ================= VERIFY OTP =================
-document.getElementById("verifyOtpBtn").onclick=async()=>{
-  const code=document.getElementById("otpInput").value.trim();
+async function setupRecaptcha(){
+  await clearRecaptchaIfAny();
+  // invisible reCAPTCHA
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    'size': 'invisible',
+    'callback': (token)=> { /* invisible callback */ }
+  });
+  // render and store widget id if possible
   try{
-    await window.confirm.confirm(code);
-  }catch(e){ return alert("OTP चुकीचा"); }
-};
+    const widgetId = await window.recaptchaVerifier.render();
+    window.__recaptchaWidgetId = widgetId;
+  }catch(e){
+    console.warn('recaptcha render failed', e);
+  }
+}
 
+/* ============ Send OTP ============ */
+sendOtpBtn.addEventListener('click', async ()=>{
+  const num = phoneInput.value.trim();
+  if(!/^[0-9]{10}$/.test(num)) return alert('कृपया वैध 10 अंकी फोन नंबर टाका.');
 
-// ================= USER STATE =================
-auth.onAuthStateChanged(async(user)=>{
-  const authBox=document.getElementById("authBox");
-  const userBox=document.getElementById("userBox");
-  const tabs=document.getElementById("tabs");
+  try{
+    await setupRecaptcha();
+    const phone = '+91' + num;
+    // signInWithPhoneNumber requires the recaptcha verifier instance
+    const confirmationResult = await auth.signInWithPhoneNumber(phone, window.recaptchaVerifier);
+    window._confirmationResult = confirmationResult;
+    alert('OTP पाठवला झाला आहे — कृपया मिळालेला कोड टाका.');
+  }catch(err){
+    console.error('sendOtpErr', err);
+    alert('Firebase: ' + (err && err.message ? err.message : 'Internal Auth Error'));
+  }
+});
 
+/* ============ Verify OTP ============ */
+verifyOtpBtn.addEventListener('click', async ()=>{
+  const code = otpInput.value.trim();
+  if(!code) return alert('कृपया OTP टाका.');
+  try{
+    if(!window._confirmationResult) return alert('पहिले OTP पाठवा.');
+    const result = await window._confirmationResult.confirm(code);
+    // login success
+    alert('लॉगिन यशस्वी');
+  }catch(err){
+    console.error('verifyErr', err);
+    alert('OTP चुकीचा किंवा एक्स्पायर्ड आहे.');
+  }
+});
+
+/* ============ Auth State ============ */
+auth.onAuthStateChanged(async (user)=>{
   if(!user){
-    authBox.classList.remove("hidden");
-    userBox.classList.add("hidden");
-    tabs.classList.add("hidden");
+    authBlock.classList.remove('hidden');
+    userBox.classList.add('hidden');
+    tabs.classList.add('hidden');
     return;
   }
+  // logged in
+  authBlock.classList.add('hidden');
+  userBox.classList.remove('hidden');
+  tabs.classList.remove('hidden');
 
-  authBox.classList.add("hidden");
-  userBox.classList.remove("hidden");
-  tabs.classList.remove("hidden");
+  userPhone.textContent = user.phoneNumber || '';
+  // simple admin check by phone number (you can change)
+  userRole.textContent = (user.phoneNumber === '+917020970727') ? 'Admin' : 'User';
 
-  document.getElementById("userPhone").textContent=user.phoneNumber;
-  document.getElementById("userRole").textContent=
-    user.phoneNumber==="+917020970727"?"Admin":"User";
-
-  loadRecent();
+  // show IN panel by default
+  showPanel('in');
+  await loadRecent();
 });
 
-// LOGOUT
-document.getElementById("logoutBtn").onclick=()=>auth.signOut();
+/* ============ Logout ============ */
+logoutBtn.addEventListener('click', ()=>auth.signOut());
 
-// ================= TAB SWITCH =================
-document.getElementById("tabIn").onclick=()=>showPanel("in");
-document.getElementById("tabOut").onclick=()=>showPanel("out");
-document.getElementById("tabRep").onclick=()=>showPanel("rep");
-
-function showPanel(p){
-  panelIn.classList.add("hidden");
-  panelOut.classList.add("hidden");
-  panelRep.classList.add("hidden");
-  if(p==="in") panelIn.classList.remove("hidden");
-  if(p==="out") panelOut.classList.remove("hidden");
-  if(p==="rep") panelRep.classList.remove("hidden");
-}
-
-// ================= FILE UPLOAD =================
-async function uploadFile(file,folder){
+/* ============ File upload helper ============ */
+async function uploadFile(file, folder){
   if(!file) return null;
-  const ref=storage.ref(folder+"/"+Date.now()+"_"+file.name);
+  const path = `${folder}/${Date.now()}_${file.name}`;
+  const ref = storage.ref().child(path);
   await ref.put(file);
   return await ref.getDownloadURL();
 }
 
-// ================= IN SAVE =================
-inForm.onsubmit=async(e)=>{
+/* ============ IN Submit ============ */
+inForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  const date = inDate.value || new Date().toISOString().slice(0,10);
+  const from = inFrom.value.trim() || '---';
+  const total = Number(inTotal.value) || 0;
+  const paid = Number(inPaid.value) || 0;
+  const payType = inPayType.value || 'Cash';
+  try{
+    const fileUrl = await uploadFile(inFile.files[0], 'in_files');
+    await db.collection('in_entries').add({
+      date, from, total, paid, balance: (total - paid), payType, fileUrl: fileUrl || null,
+      createdAt: Date.now()
+    });
+    alert('IN नोंद जतन झाली');
+    inForm.reset();
+    loadRecent();
+  }catch(err){
+    console.error('inSaveErr', err);
+    alert('IN सेवेत त्रुटी');
+  }
+});
 
-  const data={
-    date:inDate.value,
-    from:inFrom.value,
-    total:Number(inTotal.value),
-    paid:Number(inPaid.value),
-    balance:Number(inTotal.value)-Number(inPaid.value),
-    payType:inType.value,
-    createdAt:Date.now(),
-    fileUrl:await uploadFile(inFile.files[0],"in")
-  };
-
-  await db.collection("in_entries").add(data);
-  alert("IN जतन झाले");
-  loadRecent();
-  inForm.reset();
-};
-
-// ================= OUT SAVE =================
-outForm.onsubmit=async(e)=>{
+/* ============ OUT Submit ============ */
+outForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  const date = outDate.value || new Date().toISOString().slice(0,10);
+  const to = outTo.value.trim() || '---';
+  const total = Number(outTotal.value) || 0;
+  const paid = Number(outPaid.value) || 0;
+  const payType = outPayType.value || 'Cash';
+  try{
+    const fileUrl = await uploadFile(outFile.files[0], 'out_files');
+    await db.collection('out_entries').add({
+      date, to, total, paid, balance: (total - paid), payType, fileUrl: fileUrl || null,
+      createdAt: Date.now()
+    });
+    alert('OUT नोंद जतन झाली');
+    outForm.reset();
+    loadRecent();
+  }catch(err){
+    console.error('outSaveErr', err);
+    alert('OUT सेवेत त्रुटी');
+  }
+});
 
-  const data={
-    date:outDate.value,
-    to:outTo.value,
-    total:Number(outTotal.value),
-    paid:Number(outPaid.value),
-    balance:Number(outTotal.value)-Number(outPaid.value),
-    payType:outType.value,
-    createdAt:Date.now(),
-    fileUrl:await uploadFile(outFile.files[0],"out")
-  };
-
-  await db.collection("out_entries").add(data);
-  alert("OUT जतन झाले");
-  loadRecent();
-  outForm.reset();
-};
-
-// ================= LOAD RECENT =================
+/* ============ Load recent entries ============ */
 async function loadRecent(){
-  let htmlIn="",htmlOut="";
+  try{
+    const inSnap = await db.collection('in_entries').orderBy('createdAt','desc').limit(5).get();
+    const outSnap = await db.collection('out_entries').orderBy('createdAt','desc').limit(5).get();
 
-  const inSnap=await db.collection("in_entries")
-                      .orderBy("createdAt","desc").limit(5).get();
+    let htmlIn = '';
+    inSnap.forEach(d=>{
+      const x = d.data();
+      htmlIn += `<div class="p-2 border rounded mb-1"><b>${escapeHtml(x.from||'---')}</b> — ₹${x.total||0} | Paid: ₹${x.paid||0}</div>`;
+    });
+    recentIn.innerHTML = htmlIn || '<div class="text-sm text-gray-500">कोणतीही IN नोंद नाही.</div>';
 
-  inSnap.forEach(d=>{
-    const x=d.data();
-    htmlIn+=`<div class="p-2 border rounded mb-1">
-    <b>${x.from}</b> — ₹${x.total} | Paid: ₹${x.paid}
-    </div>`;
-  });
-
-  const outSnap=await db.collection("out_entries")
-                       .orderBy("createdAt","desc").limit(5).get();
-
-  outSnap.forEach(d=>{
-    const x=d.data();
-    htmlOut+=`<div class="p-2 border rounded mb-1">
-    <b>${x.to}</b> — ₹${x.total} | Paid: ₹${x.paid}
-    </div>`;
-  });
-
-  recentIn.innerHTML=htmlIn;
-  recentOut.innerHTML=htmlOut;
+    let htmlOut = '';
+    outSnap.forEach(d=>{
+      const x = d.data();
+      htmlOut += `<div class="p-2 border rounded mb-1"><b>${escapeHtml(x.to||'---')}</b> — ₹${x.total||0} | Paid: ₹${x.paid||0}</div>`;
+    });
+    recentOut.innerHTML = htmlOut || '<div class="text-sm text-gray-500">कोणतीही OUT नोंद नाही.</div>';
+  }catch(e){
+    console.error('loadRecentErr', e);
+  }
 }
 
-// ================= REPORTS =================
-filterName.oninput=loadReports;
-filterFrom.onchange=loadReports;
-filterTo.onchange=loadReports;
+/* ============ Reports (filters + stats) ============ */
+filterName.addEventListener('input', debounce(loadReports, 300));
+filterFrom.addEventListener('change', loadReports);
+filterTo.addEventListener('change', loadReports);
 
 async function loadReports(){
-  const name=filterName.value.trim().toLowerCase();
-  const from=filterFrom.value;
-  const to=filterTo.value;
+  try{
+    const name = (filterName.value || '').trim().toLowerCase();
+    const from = filterFrom.value || null;
+    const to = filterTo.value || null;
 
-  const inSnap=await db.collection("in_entries").get();
-  const outSnap=await db.collection("out_entries").get();
+    const inSnap = await db.collection('in_entries').get();
+    const outSnap = await db.collection('out_entries').get();
 
-  let IN=inSnap.docs.map(d=>d.data());
-  let OUT=outSnap.docs.map(d=>d.data());
+    let IN = inSnap.docs.map(d=>d.data());
+    let OUT = outSnap.docs.map(d=>d.data());
 
-  if(name){
-    IN=IN.filter(x=>x.from?.toLowerCase().includes(name));
-    OUT=OUT.filter(x=>x.to?.toLowerCase().includes(name));
+    if(name){
+      IN = IN.filter(i => (i.from || '').toLowerCase().includes(name));
+      OUT = OUT.filter(o => (o.to || '').toLowerCase().includes(name));
+    }
+    if(from) {
+      IN = IN.filter(i => (i.date || '') >= from);
+      OUT = OUT.filter(o => (o.date || '') >= from);
+    }
+    if(to) {
+      IN = IN.filter(i => (i.date || '') <= to);
+      OUT = OUT.filter(o => (o.date || '') <= to);
+    }
+
+    // store for export
+    window._reportIn = IN;
+    window._reportOut = OUT;
+
+    const sumIn = IN.reduce((acc, it) => acc + Number(it.total||0), 0);
+    const sumOut = OUT.reduce((acc, it) => acc + Number(it.total||0), 0);
+    const sumPaid = [...IN, ...OUT].reduce((acc, it) => acc + Number(it.paid||0), 0);
+    const sumBal = [...IN, ...OUT].reduce((acc, it) => acc + Number(it.balance||0), 0);
+
+    reportStats.innerHTML = `<b>IN:</b> ₹${sumIn}<br><b>OUT:</b> ₹${sumOut}<br><b>Paid:</b> ₹${sumPaid}<br><b>Balance:</b> ₹${sumBal}`;
+  }catch(e){
+    console.error('loadReportsErr', e);
   }
-  if(from) IN=IN.filter(x=>x.date>=from);
-  if(to) IN=IN.filter(x=>x.date<=to);
-  if(from) OUT=OUT.filter(x=>x.date>=from);
-  if(to) OUT=OUT.filter(x=>x.date<=to);
-
-  window._reportIn=IN;
-  window._reportOut=OUT;
-
-  const sumIn=IN.reduce((a,b)=>a+Number(b.total),0);
-  const sumOut=OUT.reduce((a,b)=>a+Number(b.total),0);
-  const sumPaid=[...IN,...OUT].reduce((a,b)=>a+Number(b.paid),0);
-  const sumBal=[...IN,...OUT].reduce((a,b)=>a+Number(b.balance),0);
-
-  reportStats.innerHTML=`
-  <b>IN:</b> ₹${sumIn}<br>
-  <b>OUT:</b> ₹${sumOut}<br>
-  <b>Paid:</b> ₹${sumPaid}<br>
-  <b>Balance:</b> ₹${sumBal}<br>
-  `;
 }
 
-// =============== PDF EXPORT =================
-document.getElementById("exportPdfBtn").onclick=()=>{
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  let y=20;
-
-  doc.text("Inventory Report",20,y); y+=10;
-  [...(window._reportIn||[]),...(window._reportOut||[])].forEach(r=>{
-    doc.text(`${r.date} | ₹${r.total} | Paid:${r.paid}`,20,y);
-    y+=10;
+/* ============ Export PDF (simple list) ============ */
+exportPdfBtn.addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+  let y = 36;
+  doc.setFontSize(16); doc.text('Inventory Report', 40, y); y+=20;
+  const rows = [...(window._reportIn||[]).map(r=>({type:'IN',...r})), ...(window._reportOut||[]).map(r=>({type:'OUT',...r}))];
+  doc.setFontSize(11);
+  rows.forEach(r=>{
+    const line = `${r.type} | ${r.date||''} | ${r.from||r.to||''} | ₹${r.total||0} | Paid ₹${r.paid||0}`;
+    if(y > 760){ doc.addPage(); y = 36; }
+    doc.text(line, 40, y); y += 14;
   });
+  doc.save(`Report_${Date.now()}.pdf`);
+});
 
-  doc.save("Report.pdf");
-};
+/* ============ Export Excel (SheetJS) ============ */
+exportExcelBtn.addEventListener('click', ()=>{
+  const wb = XLSX.utils.book_new();
+  const rows = [['Type','Date','Name','Total','Paid','Balance','PaymentType']];
+  (window._reportIn||[]).forEach(r => rows.push(['IN', r.date||'', r.from||'', r.total||0, r.paid||0, r.balance||0, r.payType||'']));
+  (window._reportOut||[]).forEach(r => rows.push(['OUT', r.date||'', r.to||'', r.total||0, r.paid||0, r.balance||0, r.payType||'']));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, `Report_${Date.now()}.xlsx`);
+});
 
-// =============== EXCEL EXPORT =================
-document.getElementById("exportCsvBtn").onclick=()=>{
-  const wb=XLSX.utils.book_new();
-  const rows=[["Type","Date","Name","Total","Paid","Balance"]];
+/* ============ Backup (JSON) ============ */
+backupBtn.addEventListener('click', async ()=>{
+  try{
+    const inSnap = await db.collection('in_entries').get();
+    const outSnap = await db.collection('out_entries').get();
+    const data = {
+      backupDate: new Date().toISOString(),
+      in_entries: inSnap.docs.map(d => ({ id:d.id, ...d.data() })),
+      out_entries: outSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `InventoryBackup_${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url);
+    alert('Backup डाउनलोड झाला');
+  }catch(e){ console.error('backupErr', e); alert('Backup error'); }
+});
 
-  (window._reportIn||[]).forEach(r=>{
-    rows.push(["IN",r.date,r.from,r.total,r.paid,r.balance]);
-  });
-  (window._reportOut||[]).forEach(r=>{
-    rows.push(["OUT",r.date,r.to,r.total,r.paid,r.balance]);
-  });
+/* ============ Restore (JSON) ============ */
+restoreBtn.addEventListener('click', ()=> restoreFileInput.click());
+restoreFileInput.addEventListener('change', async (ev)=>{
+  const file = ev.target.files[0]; if(!file) return;
+  try{
+    const text = await file.text();
+    const json = JSON.parse(text);
+    if(!json.in_entries || !json.out_entries) return alert('अवैध फाइल');
+    const confirmRestore = confirm('Restore केल्याने डेटा पुन्हा जोडला जाईल. चालू ठेवायचे?');
+    if(!confirmRestore) return;
+    // write back using same ids to preserve
+    for(const it of json.in_entries){ await db.collection('in_entries').doc(it.id).set(it); }
+    for(const it of json.out_entries){ await db.collection('out_entries').doc(it.id).set(it); }
+    alert('Restore पूर्ण झाले');
+    loadRecent(); loadReports();
+  }catch(e){ console.error('restoreErr', e); alert('Restore error'); }
+});
 
-  const sh=XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,sh,"Report");
-  XLSX.writeFile(wb,"Report.xlsx");
-};
+/* ============ Daily Summary PDF ============ */
+dailyPdfBtn.addEventListener('click', async ()=>{
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    const inSnap = await db.collection('in_entries').where('date','==',today).get();
+    const outSnap = await db.collection('out_entries').where('date','==',today).get();
+    const IN = inSnap.docs.map(d=>d.data());
+    const OUT = outSnap.docs.map(d=>d.data());
+    if(IN.length===0 && OUT.length===0) return alert('आज कोणतीही नोंद नाही');
+    const sumIn = IN.reduce((a,b)=>a+Number(b.total||0), 0);
+    const sumOut = OUT.reduce((a,b)=>a+Number(b.total||0), 0);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','pt','a4');
+    let y=40;
+    doc.setFontSize(16); doc.text(`Daily Summary - ${today}`, 40, y); y+=20;
+    doc.setFontSize(12); doc.text(`Total IN: ₹${sumIn}`, 40, y); y+=16;
+    doc.text(`Total OUT: ₹${sumOut}`, 40, y); y+=20;
+    doc.setFontSize(12); doc.text('IN Entries:', 40, y); y+=14;
+    IN.forEach(it=>{ if(y>760){doc.addPage(); y=40;} doc.text(`${it.date} | ${it.from||''} | ₹${it.total||0} | Paid ₹${it.paid||0}`, 40, y); y+=12; });
+    y+=10; doc.text('OUT Entries:',40,y); y+=14;
+    OUT.forEach(it=>{ if(y>760){doc.addPage(); y=40;} doc.text(`${it.date} | ${it.to||''} | ₹${it.total||0} | Paid ₹${it.paid||0}`, 40, y); y+=12; });
+    doc.save(`DailySummary_${today}.pdf`);
+  }catch(e){ console.error('dailyErr', e); alert('Daily report error'); }
+});
 
-// =============== BACKUP (JSON) =================
-backupBtn.onclick=async()=>{
-  const IN=(await db.collection("in_entries").get()).docs.map(d=>d.data());
-  const OUT=(await db.collection("out_entries").get()).docs.map(d=>d.data());
+/* ============ Utilities ============ */
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function debounce(fn, t){ let timer; return (...args)=>{ clearTimeout(timer); timer=setTimeout(()=>fn(...args), t||300); }; }
 
-  const obj={date:new Date(),IN,OUT};
-  const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
+/* ============ Init defaults ============ */
+// prefill dates with today
+const today = new Date().toISOString().slice(0,10);
+inDate.value = today; outDate.value = today; filterFrom.value = ''; filterTo.value = '';
 
-  const a=document.createElement("a");
-  a.href=url;
-  a.download="Backup.json";
-  a.click();
-};
+/* make sure tabs work after login */
+tabIn.addEventListener('click', ()=> showPanel('in'));
+tabOut.addEventListener('click', ()=> showPanel('out'));
+tabRep.addEventListener('click', ()=> showPanel('rep'));
 
-// =============== RESTORE =================
-restoreBtn.onclick=()=>restoreFileInput.click();
+/* Quick clears */
+inClear.addEventListener('click', ()=> inForm.reset());
+outClear.addEventListener('click', ()=> outForm.reset());
 
-restoreFileInput.onchange=async(e)=>{
-  const file=e.target.files[0];
-  if(!file) return;
-
-  const text=await file.text();
-  const json=JSON.parse(text);
-
-  json.IN.forEach(x=>db.collection("in_entries").add(x));
-  json.OUT.forEach(x=>db.collection("out_entries").add(x));
-
-  alert("Restore Completed");
-  loadRecent();
-};
-
-// =============== DAILY SUMMARY PDF =================
-dailyPdfBtn.onclick=async()=>{
-  const today=new Date().toISOString().slice(0,10);
-
-  const inSnap=await db.collection("in_entries").where("date","==",today).get();
-  const outSnap=await db.collection("out_entries").where("date","==",today).get();
-
-  const IN=inSnap.docs.map(d=>d.data());
-  const OUT=outSnap.docs.map(d=>d.data());
-
-  if(IN.length===0 && OUT.length===0) return alert("आज काही एंट्री नाही");
-
-  const sumIn=IN.reduce((a,b)=>a+Number(b.total),0);
-  const sumOut=OUT.reduce((a,b)=>a+Number(b.total),0);
-
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-
-  doc.text(`Daily Summary - ${today}`,20,20);
-  doc.text(`IN: ₹${sumIn}`,20,40);
-  doc.text(`OUT: ₹${sumOut}`,20,55);
-
-  doc.save("DailySummary.pdf");
-};
+/* Small safety: ensure recaptcha cleared if user navigates away */
+window.addEventListener('beforeunload', ()=> { try{ if(window.recaptchaVerifier && window.recaptchaVerifier.clear) window.recaptchaVerifier.clear(); }catch(e){} });
 
 </script>
-
 </body>
 </html>
