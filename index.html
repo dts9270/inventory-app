@@ -2,370 +2,232 @@
 <html lang="mr">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>📦 सामान व्यवस्थापन (Marathi Inventory – No OTP)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>सामान व्यवस्थापन (Marathi Inventory)</title>
 
-<!-- Tailwind CSS -->
+<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Firebase -->
+<!-- Firebase v9 -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-<!-- jsPDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<!-- SheetJS Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <style>
-body { font-family: Inter, system-ui; background:#FFF7ED; }
-.card { border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
-.small-muted { font-size:0.85rem; color:#666; }
+body{font-family:sans-serif;background:#faf7ef}
+.card{border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.10);background:white}
+.big{font-size:20px;font-weight:700}
 </style>
 </head>
-
 <body class="p-4">
-<div class="max-w-lg mx-auto">
-<h1 class="text-2xl font-bold text-amber-700 text-center mb-4">📦 सामान व्यवस्थापन</h1>
 
-<!-- TABS -->
+<h1 class="text-center text-3xl font-bold mb-4">📦 सामान व्यवस्थापन</h1>
+
+<!-- Tabs -->
 <div class="flex gap-2 mb-4">
-<button id="tabIn" class="flex-1 bg-amber-600 text-white p-3 rounded">IN (घेणे)</button>
-<button id="tabOut" class="flex-1 bg-white border p-3 rounded">OUT (देणे)</button>
-<button id="tabRep" class="flex-1 bg-white border p-3 rounded">रिपोर्ट</button>
+    <button id="tabIn" class="flex-1 p-3 bg-amber-600 text-white rounded big">IN (घेणे)</button>
+    <button id="tabOut" class="flex-1 p-3 bg-gray-300 rounded big">OUT (देणे)</button>
+    <button id="tabReports" class="flex-1 p-3 bg-gray-300 rounded big">📊 रिपोर्ट</button>
 </div>
 
-<!-- IN PANEL -->
-<div id="panelIn" class="card bg-white p-4 mb-4">
-<h2 class="font-bold text-lg mb-2">IN — सामान घेतले</h2>
+<!-- IN Panel -->
+<div id="panelIn" class="card p-4">
+    <h2 class="text-xl font-semibold mb-3">IN — सामान घेतले</h2>
 
-<form id="inForm" class="space-y-3">
-  <label class="small-muted">तारीख</label>
-  <input id="inDate" type="date" class="w-full p-3 border rounded"/>
+    <label>तारीख</label>
+    <input id="inDate" type="date" class="w-full p-2 border rounded mb-3">
 
-  <label class="small-muted">कोणाकडून</label>
-  <input id="inFrom" class="w-full p-3 border rounded" placeholder="पुरवठादाराचे नाव"/>
+    <label>कोणाकडून</label>
+    <input id="inFrom" type="text" placeholder="पुरवठादार" class="w-full p-2 border rounded mb-3">
 
-  <div class="grid grid-cols-2 gap-3">
-    <div>
-      <label class="small-muted">एकूण रक्कम (₹)</label>
-      <input id="inTotal" type="number" class="w-full p-3 border rounded"/>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label>एकूण रक्कम (₹)</label>
+            <input id="inTotal" type="number" class="w-full p-2 border rounded">
+        </div>
+        <div>
+            <label>भरले (₹)</label>
+            <input id="inPaid" type="number" class="w-full p-2 border rounded">
+        </div>
     </div>
-    <div>
-      <label class="small-muted">भरले (Paid ₹)</label>
-      <input id="inPaid" type="number" class="w-full p-3 border rounded"/>
+
+    <label class="mt-3">पेमेंट प्रकार</label>
+    <select id="inPayType" class="w-full p-2 border rounded mb-3">
+        <option>Cash</option>
+        <option>Online</option>
+        <option>Baki</option>
+    </select>
+
+    <label>बिल / फोटो</label>
+    <input id="inFile" type="file" class="w-full p-2 border rounded mb-3">
+
+    <button id="btnIn" class="w-full p-3 bg-amber-600 text-white rounded big">IN जतन करा</button>
+
+    <h3 class="text-lg mt-4 font-semibold">ताज्या IN नोंदी</h3>
+    <div id="recentIn" class="text-gray-700"></div>
+</div>
+
+<!-- OUT Panel -->
+<div id="panelOut" class="card p-4 hidden">
+    <h2 class="text-xl font-semibold mb-3">OUT — सामान दिले</h2>
+
+    <label>तारीख</label>
+    <input id="outDate" type="date" class="w-full p-2 border rounded mb-3">
+
+    <label>कोणाला</label>
+    <input id="outTo" type="text" placeholder="ग्राहक" class="w-full p-2 border rounded mb-3">
+
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label>एकूण रक्कम (₹)</label>
+            <input id="outTotal" type="number" class="w-full p-2 border rounded">
+        </div>
+        <div>
+            <label>भरले (₹)</label>
+            <input id="outPaid" type="number" class="w-full p-2 border rounded">
+        </div>
     </div>
-  </div>
 
-  <label class="small-muted">पेमेंट प्रकार</label>
-  <select id="inPayType" class="w-full p-3 border rounded">
-    <option>Cash</option><option>Online</option><option>Baki</option>
-  </select>
+    <label class="mt-3">पेमेंट प्रकार</label>
+    <select id="outPayType" class="w-full p-2 border rounded mb-3">
+        <option>Cash</option>
+        <option>Online</option>
+        <option>Baki</option>
+    </select>
 
-  <label class="small-muted">बिल / फोटो (ऐच्छिक)</label>
-  <input id="inFile" type="file" accept="image/*,application/pdf" class="w-full"/>
+    <label>बिल / फोटो</label>
+    <input id="outFile" type="file" class="w-full p-2 border rounded mb-3">
 
-  <div class="flex gap-2">
-    <button class="flex-1 bg-amber-600 text-white p-3 rounded" type="submit">IN जतन करा</button>
-    <button id="inClear" type="button" class="flex-1 bg-gray-300 p-3 rounded">Clear</button>
-  </div>
-</form>
+    <button id="btnOut" class="w-full p-3 bg-blue-600 text-white rounded big">OUT जतन करा</button>
 
-<h3 class="mt-4 font-semibold">ताज्या IN नोंदी</h3>
-<div id="recentIn" class="mt-2 text-sm"></div>
+    <h3 class="text-lg mt-4 font-semibold">ताज्या OUT नोंदी</h3>
+    <div id="recentOut" class="text-gray-700"></div>
 </div>
 
-<!-- OUT PANEL -->
-<div id="panelOut" class="card bg-white p-4 mb-4 hidden">
-<h2 class="font-bold text-lg mb-2">OUT — सामान दिले</h2>
-
-<form id="outForm" class="space-y-3">
-  <label class="small-muted">तारीख</label>
-  <input id="outDate" type="date" class="w-full p-3 border rounded"/>
-
-  <label class="small-muted">कोणाला</label>
-  <input id="outTo" class="w-full p-3 border rounded" placeholder="ग्राहकाचे नाव"/>
-
-  <div class="grid grid-cols-2 gap-3">
-    <div>
-      <label class="small-muted">एकूण रक्कम (₹)</label>
-      <input id="outTotal" type="number" class="w-full p-3 border rounded"/>
-    </div>
-    <div>
-      <label class="small-muted">भरले (Paid ₹)</label>
-      <input id="outPaid" type="number" class="w-full p-3 border rounded"/>
-    </div>
-  </div>
-
-  <label class="small-muted">पेमेंट प्रकार</label>
-  <select id="outPayType" class="w-full p-3 border rounded">
-    <option>Cash</option><option>Online</option><option>Baki</option>
-  </select>
-
-  <label class="small-muted">बिल / फोटो (ऐच्छिक)</label>
-  <input id="outFile" type="file" accept="image/*,application/pdf" class="w-full"/>
-
-  <div class="flex gap-2">
-    <button class="flex-1 bg-blue-600 text-white p-3 rounded" type="submit">OUT जतन करा</button>
-    <button id="outClear" type="button" class="flex-1 bg-gray-300 p-3 rounded">Clear</button>
-  </div>
-</form>
-
-<h3 class="mt-4 font-semibold">ताज्या OUT नोंदी</h3>
-<div id="recentOut" class="mt-2 text-sm"></div>
-</div>
-
-<!-- REPORT PANEL -->
-<div id="panelRep" class="card bg-white p-4 mb-4 hidden">
-<h2 class="font-bold text-lg mb-3">रिपोर्ट</h2>
-
-<input id="filterName" class="w-full p-3 border rounded mb-2" placeholder="नाव शोधा"/>
-
-<div class="grid grid-cols-2 gap-2 mb-3">
-  <input id="filterFrom" type="date" class="p-3 border rounded"/>
-  <input id="filterTo" type="date" class="p-3 border rounded"/>
-</div>
-
-<div id="reportStats" class="text-sm mb-3"></div>
-
-<div class="flex gap-2">
-  <button id="exportPdfBtn" class="flex-1 bg-gray-700 text-white p-3 rounded">PDF</button>
-  <button id="exportExcelBtn" class="flex-1 bg-green-600 text-white p-3 rounded">Excel</button>
-</div>
-
-<div class="flex gap-2 mt-3">
-  <button id="backupBtn" class="flex-1 bg-purple-600 text-white p-3 rounded">📥 बॅकअप</button>
-  <button id="restoreBtn" class="flex-1 bg-orange-600 text-white p-3 rounded">📤 Restore</button>
-</div>
-
-<input id="restoreFileInput" type="file" accept="application/json" class="hidden"/>
-
-<button id="dailyPdfBtn" class="w-full bg-red-600 text-white p-3 rounded mt-3">📅 Daily PDF</button>
+<!-- REPORT Panel -->
+<div id="panelReports" class="card p-4 hidden">
+    <h2 class="text-xl font-semibold mb-3">📊 एकत्रित रिपोर्ट</h2>
+    <button id="loadReport" class="w-full p-3 bg-green-600 text-white rounded big">रिपोर्ट लोड करा</button>
+    <div id="reportBox" class="mt-4"></div>
 </div>
 
 <script>
-// ---------------------- Firebase Init --------------------------
+// ---------------- FIREBASE CONFIG ----------------
 const firebaseConfig = {
-  apiKey: "AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
+  apiKey: "AIzaSyA3PdBavWlcE3w3Ojgy0yk2jKAUfCuAbY",
   authDomain: "product-buy-sell.firebaseapp.com",
   projectId: "product-buy-sell",
-  storageBucket: "product-buy-sell.firebasestorage.app",
-  messagingSenderId: "815213852798",
-  appId: "1:815213852798:web:d347aec03aa3a46ba3802f"
+  storageBucket: "product-buy-sell.appspot.com",
 };
-
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// ---------------------- UI Panel Switch ------------------------
-function showPanel(n) {
-  panelIn.classList.add("hidden");
-  panelOut.classList.add("hidden");
-  panelRep.classList.add("hidden");
-  if (n === "in") panelIn.classList.remove("hidden");
-  if (n === "out") panelOut.classList.remove("hidden");
-  if (n === "rep") panelRep.classList.remove("hidden");
-}
-tabIn.onclick = () => showPanel("in");
-tabOut.onclick = () => showPanel("out");
-tabRep.onclick = () => showPanel("rep");
+// ---------------- SIMPLE FUNCTIONS ----------------
+function toast(t){ alert(t); }
 
-// default
-showPanel("in");
-
-// ---------------------- File Upload ----------------------------
-async function uploadFile(file, folder) {
-  if (!file) return null;
+// Upload File
+async function uploadFile(file, folder){
+  if(!file) return "";
   const path = `${folder}/${Date.now()}_${file.name}`;
-  const ref = storage.ref().child(path);
+  const ref = storage.ref(path);
   await ref.put(file);
   return await ref.getDownloadURL();
 }
 
-// ---------------------- IN SAVE ----------------------------
-inForm.onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const fURL = await uploadFile(inFile.files[0], "in");
-    await db.collection("in_entries").add({
+// ---------------- SAVE IN ----------------
+document.getElementById("btnIn").onclick = async () =>{
+ try{
+    const obj = {
       date: inDate.value,
-      from: inFrom.value,
-      total: Number(inTotal.value),
-      paid: Number(inPaid.value),
-      balance: Number(inTotal.value) - Number(inPaid.value),
+      from: inFrom.value.trim(),
+      total: Number(inTotal.value)||0,
+      paid: Number(inPaid.value)||0,
+      balance: (Number(inTotal.value)-Number(inPaid.value)),
       payType: inPayType.value,
-      fileURL: fURL,
       createdAt: Date.now()
-    });
-    inForm.reset();
+    };
+    obj.fileURL = await uploadFile(inFile.files[0],"in");
+    await db.collection("in_entries").add(obj);
+    toast("IN जतन झाले!");
     loadRecent();
-  } catch (err) { alert("IN Error: " + err.message); }
+ }catch(err){ toast("IN Error: "+err); }
 };
 
-// ---------------------- OUT SAVE ----------------------------
-outForm.onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const fURL = await uploadFile(outFile.files[0], "out");
-    await db.collection("out_entries").add({
+// ---------------- SAVE OUT ----------------
+document.getElementById("btnOut").onclick = async () =>{
+ try{
+    const obj = {
       date: outDate.value,
-      to: outTo.value,
-      total: Number(outTotal.value),
-      paid: Number(outPaid.value),
-      balance: Number(outTotal.value) - Number(outPaid.value),
+      to: outTo.value.trim(),
+      total: Number(outTotal.value)||0,
+      paid: Number(outPaid.value)||0,
+      balance: (Number(outTotal.value)-Number(outPaid.value)),
       payType: outPayType.value,
-      fileURL: fURL,
       createdAt: Date.now()
-    });
-    outForm.reset();
+    };
+    obj.fileURL = await uploadFile(outFile.files[0],"out");
+    await db.collection("out_entries").add(obj);
+    toast("OUT जतन झाले!");
     loadRecent();
-  } catch (err) { alert("OUT Error: " + err.message); }
+ }catch(err){ toast("OUT Error: "+err); }
 };
 
-// ---------------------- Recent Loads -------------------------
-async function loadRecent() {
-  const inSnap = await db.collection("in_entries").orderBy("createdAt","desc").limit(10).get();
-  recentIn.innerHTML = "";
-  inSnap.forEach(d => {
-    const v = d.data();
-    recentIn.innerHTML += `<div class="p-2 border rounded mb-1">IN: ₹${v.total} | Paid ₹${v.paid} | Bal ₹${v.balance}</div>`;
-  });
+// ---------------- RECENT LOAD ----------------
+async function loadRecent(){
+ let box="";
+ const snap = await db.collection("in_entries").orderBy("createdAt","desc").limit(5).get();
+ snap.forEach(d=> box+=`<div class="border p-2 mb-1">IN: ₹${d.data().total} (${d.data().from})</div>`);
+ recentIn.innerHTML = box;
 
-  const outSnap = await db.collection("out_entries").orderBy("createdAt","desc").limit(10).get();
-  recentOut.innerHTML = "";
-  outSnap.forEach(d => {
-    const v = d.data();
-    recentOut.innerHTML += `<div class="p-2 border rounded mb-1">OUT: ₹${v.total} | Paid ₹${v.paid} | Bal ₹${v.balance}</div>`;
-  });
+ box="";
+ const snap2 = await db.collection("out_entries").orderBy("createdAt","desc").limit(5).get();
+ snap2.forEach(d=> box+=`<div class="border p-2 mb-1">OUT: ₹${d.data().total} (${d.data().to})</div>`);
+ recentOut.innerHTML = box;
 }
 loadRecent();
 
-// ---------------------- REPORT LOAD -------------------------
-async function loadReport() {
-  const fName = filterName.value.toLowerCase();
-  const fF = filterFrom.value ? new Date(filterFrom.value) : null;
-  const fT = filterTo.value ? new Date(filterTo.value) : null;
+// ---------------- REPORT ----------------
+document.getElementById("loadReport").onclick = async ()=>{
+ let box = "<h3 class='font-bold mb-2'>संपूर्ण रिपोर्ट</h3>";
+ const ins = await db.collection("in_entries").get();
+ const outs = await db.collection("out_entries").get();
 
-  const inSnap = await db.collection("in_entries").orderBy("date","desc").get();
-  const outSnap = await db.collection("out_entries").orderBy("date","desc").get();
+ let inSum=0,outSum=0;
+ ins.forEach(d=> inSum += d.data().balance);
+ outs.forEach(d=> outSum += d.data().balance);
 
-  const IN = inSnap.docs.map(d => d.data());
-  const OUT = outSnap.docs.map(d => d.data());
-
-  let fin = IN.filter(x =>
-    (!fName || (x.from||"").toLowerCase().includes(fName)) &&
-    (!fF || new Date(x.date)>=fF) &&
-    (!fT || new Date(x.date)<=fT)
-  );
-
-  let fout = OUT.filter(x =>
-    (!fName || (x.to||"").toLowerCase().includes(fName)) &&
-    (!fF || new Date(x.date)>=fF) &&
-    (!fT || new Date(x.date)<=fT)
-  );
-
-  // totals
-  let inTot = fin.reduce((a,b)=>a+(b.total||0),0);
-  let inPaid = fin.reduce((a,b)=>a+(b.paid||0),0);
-  let outTot = fout.reduce((a,b)=>a+(b.total||0),0);
-  let outPaid = fout.reduce((a,b)=>a+(b.paid||0),0);
-
-  reportStats.innerHTML =
-    `<div class="p-2 border rounded">
-      <div>IN Total ₹${inTot} | Paid ₹${inPaid} | Bal ₹${inTot-inPaid}</div>
-      <div>OUT Total ₹${outTot} | Paid ₹${outPaid} | Bal ₹${outTot-outPaid}</div>
-    </div>`;
-
-  window._reportIN = fin;
-  window._reportOUT = fout;
-}
-
-// update on filters
-filterName.oninput = filterFrom.onchange = filterTo.onchange = () => loadReport();
-
-// ---------------------- PDF Export -------------------------
-exportPdfBtn.onclick = () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.setFontSize(14);
-  doc.text("Inventory Report", 10, 10);
-  let y = 20;
-
-  (_reportIN||[]).forEach(r=>{
-    doc.text(`IN | ${r.date} | ${r.from} | Total ₹${r.total} | Paid ₹${r.paid}`,10,y);
-    y += 8; if(y>270){ doc.addPage(); y=20; }
-  });
-
-  doc.addPage();
-  y=20;
-  (_reportOUT||[]).forEach(r=>{
-    doc.text(`OUT | ${r.date} | ${r.to} | Total ₹${r.total} | Paid ₹${r.paid}`,10,y);
-    y += 8; if(y>270){ doc.addPage(); y=20; }
-  });
-
-  doc.save("report.pdf");
+ box += `<div class='p-2 border mb-2'>IN बाकी: ₹${inSum}</div>`;
+ box += `<div class='p-2 border mb-2'>OUT बाकी: ₹${outSum}</div>`;
+ reportBox.innerHTML = box;
 };
 
-// ---------------------- Excel Export -------------------------
-exportExcelBtn.onclick = () => {
-  const wb = XLSX.utils.book_new();
-  const rows = [
-    ["Type","Date","Name","Total","Paid","Balance","PayType","FileURL"]
-  ];
-
-  (_reportIN||[]).forEach(r=>rows.push(["IN",r.date,r.from,r.total,r.paid,r.balance,r.payType,r.fileURL||""]));
-  (_reportOUT||[]).forEach(r=>rows.push(["OUT",r.date,r.to,r.total,r.paid,r.balance,r.payType,r.fileURL||""]));
-
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,ws,"Report");
-  XLSX.writeFile(wb,"report.xlsx");
+// ---------------- TAB SWITCH ----------------
+tabIn.onclick = ()=>{
+ tabIn.className="flex-1 p-3 bg-amber-600 text-white rounded big";
+ tabOut.className="flex-1 p-3 bg-gray-300 rounded big";
+ tabReports.className="flex-1 p-3 bg-gray-300 rounded big";
+ panelIn.classList.remove("hidden");
+ panelOut.classList.add("hidden");
+ panelReports.classList.add("hidden");
 };
-
-// ---------------------- BACKUP -------------------------
-backupBtn.onclick = async () => {
-  const all = {};
-
-  const inSnap = await db.collection("in_entries").get();
-  const outSnap = await db.collection("out_entries").get();
-
-  all.in = inSnap.docs.map(d=>d.data());
-  all.out = outSnap.docs.map(d=>d.data());
-
-  const blob = new Blob([JSON.stringify(all)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "backup.json";
-  a.click();
+tabOut.onclick = ()=>{
+ tabOut.className="flex-1 p-3 bg-blue-600 text-white rounded big";
+ tabIn.className="flex-1 p-3 bg-gray-300 rounded big";
+ tabReports.className="flex-1 p-3 bg-gray-300 rounded big";
+ panelOut.classList.remove("hidden");
+ panelIn.classList.add("hidden");
+ panelReports.classList.add("hidden");
 };
-
-// ---------------------- RESTORE -------------------------
-restoreBtn.onclick = () => restoreFileInput.click();
-
-restoreFileInput.onchange = async (e) =>{
-  try{
-    const file = e.target.files[0];
-    const txt = await file.text();
-    const data = JSON.parse(txt);
-
-    if(data.in) data.in.forEach(v=>db.collection("in_entries").add(v));
-    if(data.out) data.out.forEach(v=>db.collection("out_entries").add(v));
-    alert("Restore पूर्ण");
-  }catch(err){ alert("Restore Error: "+err.message); }
+tabReports.onclick = ()=>{
+ tabReports.className="flex-1 p-3 bg-green-600 text-white rounded big";
+ tabIn.className="flex-1 p-3 bg-gray-300 rounded big";
+ tabOut.className="flex-1 p-3 bg-gray-300 rounded big";
+ panelReports.classList.remove("hidden");
+ panelIn.classList.add("hidden");
+ panelOut.classList.add("hidden");
 };
-
-// ---------------------- DAILY PDF -------------------------
-dailyPdfBtn.onclick = async () => {
-  const today = new Date().toISOString().slice(0,10);
-  filterFrom.value = today;
-  filterTo.value = today;
-  await loadReport();
-
-  exportPdfBtn.click();
-};
-
 </script>
 </body>
 </html>
