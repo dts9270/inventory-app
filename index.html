@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>सामान व्यवस्थापन — Inventory App (Marathi)</title>
+  <title>सामान व्यवस्थापन – Inventory App (Marathi)</title>
 
   <!-- Tailwind (fast, mobile friendly) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,12 +20,10 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    /* Larger, bold Marathi-friendly UI tweaks (D style) */
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
     .big { font-size: 1.05rem; font-weight:600; }
     .small { font-size: .9rem; }
     .card { border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
-    /* Make buttons touch-friendly */
     button { touch-action: manipulation; }
   </style>
 </head>
@@ -34,7 +32,11 @@
   <div class="max-w-xl mx-auto">
     <header class="mb-4 text-center">
       <div class="inline-flex items-center gap-2">
-        <div class="bg-amber-600 text-white rounded p-2 shadow"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7h18M3 12h18M3 17h18"/></svg></div>
+        <div class="bg-amber-600 text-white rounded p-2 shadow">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7h18M3 12h18M3 17h18"/>
+          </svg>
+        </div>
         <h1 class="text-2xl font-extrabold text-amber-700">सामान व्यवस्थापन</h1>
       </div>
       <p class="text-sm text-gray-700 mt-1">पूर्ण मराठी UI • मोबाइल-फ्रेंडली • OTP लॉगिन</p>
@@ -191,7 +193,7 @@
 
       <div class="flex gap-2">
         <button id="exportCsvBtn" class="flex-1 py-3 bg-green-600 text-white rounded big">CSV डाउनलोड</button>
-        <button id="exportPdfBtn" class="flex-1 py-3 bg-gray-100 rounded big">PDF डाउनलोड</button>
+        <button id="exportPdfBtn" class="flex-1 py-3 bg-gray-100 rounded big">PDF / Excel</button>
       </div>
     </section>
 
@@ -202,7 +204,7 @@
 
   <!-- App Script -->
   <script>
-    /***** Firebase config (user provided) *****/
+    // Firebase config (user provided)
     const firebaseConfig = {
       apiKey: "AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
       authDomain: "product-buy-sell.firebaseapp.com",
@@ -216,7 +218,7 @@
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    /***** UI Elements *****/
+    // UI Elements
     const phoneInput = document.getElementById('phoneInput');
     const sendOtpBtn = document.getElementById('sendOtpBtn');
     const otpRow = document.getElementById('otpRow');
@@ -246,7 +248,7 @@
     const inTotalSum = document.getElementById('inTotalSum'), outTotalSum = document.getElementById('outTotalSum'), paymentBreak = document.getElementById('paymentBreak'), personBalances = document.getElementById('personBalances');
     const exportCsvBtn = document.getElementById('exportCsvBtn'), exportPdfBtn = document.getElementById('exportPdfBtn');
 
-    /***** Helpers *****/
+    // Helpers
     function toast(txt){ alert(txt); }
     function show(el){ el.classList.remove('hidden'); }
     function hide(el){ el.classList.add('hidden'); }
@@ -263,7 +265,7 @@
     // initial
     setActiveTab('in');
 
-    /***** Auth (Phone OTP) *****/
+    // Auth (Phone OTP)
     function setupRecaptcha(){
       if(window.recaptchaVerifier) return;
       window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'});
@@ -279,7 +281,7 @@
         const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier);
         window.confirmationResult = confirmationResult;
         show(otpRow);
-        toast('OTP पाठवला गेला आहे. कृपया तपासा.');
+        toast('OTP पाठविला गेला आहे. कृपया तपासा.');
       } catch(e){
         console.error(e);
         toast('OTP पाठवताना त्रुटी: ' + (e.message || e));
@@ -309,7 +311,6 @@
       authLoggedOut.style.display = 'none';
       authLoggedIn.style.display = 'block';
       userPhoneEl.textContent = user.phoneNumber || '';
-      // check admin doc in Firestore
       try {
         const docRef = db.collection('admins').doc(user.phoneNumber);
         const docSnap = await docRef.get();
@@ -330,7 +331,6 @@
     }
 
     function enableForms(v){
-      // allow only auth buttons when not logged in
       const selectors = 'input,select,button';
       document.querySelectorAll(selectors).forEach(el=>{
         if(['sendOtpBtn','verifyOtpBtn'].includes(el.id)) return;
@@ -340,7 +340,7 @@
     }
     enableForms(false);
 
-    /***** File upload helper *****/
+    // File upload helper
     async function uploadFile(file, folder){
       if(!file) return null;
       const path = `${folder}/${Date.now()}_${file.name}`;
@@ -349,7 +349,7 @@
       return await snap.ref.getDownloadURL();
     }
 
-    /***** IN submit *****/
+    // IN submit
     inForm.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const date = inDate.value || new Date().toISOString().slice(0,10);
@@ -369,7 +369,7 @@
     });
     document.getElementById('inClear').addEventListener('click', ()=> inForm.reset());
 
-    /***** OUT submit *****/
+    // OUT submit
     outForm.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const date = outDate.value || new Date().toISOString().slice(0,10);
@@ -389,7 +389,7 @@
     });
     document.getElementById('outClear').addEventListener('click', ()=> outForm.reset());
 
-    /***** Load recent IN/OUT *****/
+    // Load recent IN/OUT
     async function loadRecent(){
       recentIn.innerHTML = 'लोड करत आहोत...';
       recentOut.innerHTML = 'लोड करत आहोत...';
@@ -420,7 +420,7 @@
 
     function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
 
-    /***** Reports *****/
+    // Reports
     async function loadReports(){
       try {
         const inSnap = await db.collection('in_entries').orderBy('date','desc').get();
@@ -428,7 +428,6 @@
         const inList = inSnap.docs.map(d=>d.data());
         const outList = outSnap.docs.map(d=>d.data());
 
-        // filters
         const from = filterFrom.value ? new Date(filterFrom.value) : null;
         const to = filterTo.value ? (function(){ let t=new Date(filterTo.value); t.setHours(23,59,59,999); return t; })() : null;
         const name = filterName.value.trim().toLowerCase();
@@ -447,7 +446,6 @@
         const fin = inList.filter(i=>keep(i,true));
         const fout = outList.filter(i=>keep(i,false));
 
-        // totals
         const sum = arr => arr.reduce((s,a)=> s + (Number(a.total)||0), 0);
         const sumPaid = arr => arr.reduce((s,a)=> s + (Number(a.paid)||0), 0);
         const sumBal = arr => arr.reduce((s,a)=> s + (Number(a.balance)||0), 0);
@@ -455,7 +453,6 @@
         inTotalSum.textContent = `₹${sum(fin)}`;
         outTotalSum.textContent = `₹${sum(fout)}`;
 
-        // payment breakdown
         function breakdown(arr){
           const map = {};
           arr.forEach(it=>{
@@ -473,7 +470,6 @@
         for(const k in inBreak) paymentBreak.innerHTML += `<div class="text-sm">IN ${k}: ₹${inBreak[k].total} (Paid ₹${inBreak[k].paid} | Bal ₹${inBreak[k].balance})</div>`;
         for(const k in outBreak) paymentBreak.innerHTML += `<div class="text-sm">OUT ${k}: ₹${outBreak[k].total} (Paid ₹${outBreak[k].paid} | Bal ₹${outBreak[k].balance})</div>`;
 
-        // person-wise
         const map = {};
         fin.forEach(it=>{
           const name = it.from||'--';
@@ -498,18 +494,16 @@
             <div class="text-sm">IN Bal ₹${v.in_bal} | OUT Bal ₹${v.out_bal}</div></div>`;
         });
 
-        // store for export
         window._reportIn = fin; window._reportOut = fout;
 
       } catch(e){ console.error(e); toast('रिपोर्ट लोड करताना त्रुटी'); }
     }
 
-    // update reports when filters change
     filterFrom.addEventListener('change', loadReports);
     filterTo.addEventListener('change', loadReports);
     filterName.addEventListener('input', debounce(loadReports,400));
 
-    /***** CSV Export *****/
+    // CSV Export
     exportCsvBtn.addEventListener('click', ()=>{
       const rows = [['Type','Date','Name','Total','Paid','Balance','PaymentType','FileURL']];
       (window._reportIn||[]).forEach(r=> rows.push(['IN', r.date, r.from, r.total, r.paid, r.balance, r.paymentType, r.fileUrl||'']));
@@ -520,7 +514,7 @@
       const a = document.createElement('a'); a.href = url; a.download = `report_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
     });
 
-    /***** PDF Export (simple) *****/
+    // PDF Export
     exportPdfBtn.addEventListener('click', ()=>{
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit:'pt', format:'a4' });
@@ -540,7 +534,7 @@
       doc.save(`report_${Date.now()}.pdf`);
     });
 
-    /***** Excel Export (SheetJS) - combined *****/
+    // Excel export (SheetJS)
     function exportExcel(){
       const wb = XLSX.utils.book_new();
       const rows = [['Type','Date','Name','Total','Paid','Balance','PaymentType','FileURL']];
@@ -551,28 +545,21 @@
       XLSX.writeFile(wb, `report_${Date.now()}.xlsx`);
     }
 
-    // optional quick export button via long-press on PDF button? keep simple: ctrl+click (not required)
-    // provide small helper: long press on exportPdfBtn for Excel
+    // long-press PDF -> Excel
     let longPressTimer = null;
     exportPdfBtn.addEventListener('touchstart', ()=> longPressTimer = setTimeout(()=> exportExcel(), 800));
     exportPdfBtn.addEventListener('touchend', ()=> clearTimeout(longPressTimer));
     exportPdfBtn.addEventListener('mousedown', ()=> longPressTimer = setTimeout(()=> exportExcel(), 800));
     exportPdfBtn.addEventListener('mouseup', ()=> clearTimeout(longPressTimer));
 
-    /***** Utilities *****/
-    function debounce(fn, t){
-      let timer;
-      return function(){ clearTimeout(timer); timer = setTimeout(()=> fn.apply(this, arguments), t); };
-    }
+    function debounce(fn, t){ let timer; return function(){ clearTimeout(timer); timer = setTimeout(()=> fn.apply(this, arguments), t); }; }
 
     // initial load
     document.addEventListener('DOMContentLoaded', ()=> {
-      // prefill dates to today
       const today = new Date().toISOString().slice(0,10);
       inDate.value = today; outDate.value = today; filterFrom.value = ''; filterTo.value = '';
       loadRecent();
     });
-
   </script>
 </body>
 </html>
