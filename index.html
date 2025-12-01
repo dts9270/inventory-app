@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="mr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inventory App - Marathi (GitHub Pages)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase JS SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-orange-50 font-[Poppins]">
+  <div class="max-w-xl mx-auto p-4">
+    <header class="text-center mb-4">
+      <h1 class="text-2xl font-extrabold text-orange-700">📦 सामान व्यवस्थापन (Marathi)</h1>
+      <p class="text-sm text-gray-600">Mobile-friendly | Phone OTP login | Admin support</p>
+    </header>
+
+    <div id="auth-section" class="mb-4 bg-white p-3 rounded shadow">
+      <div id="logged-out">
+        <label class="text-sm">फोन नंबर (उदा. 7020970727)</label>
+        <div class="flex gap-2 mt-2">
+          <input id="phone-input" class="flex-1 p-2 border rounded" placeholder="मोबाईल नंबर (फक्त 10 अंके)" />
+          <button id="send-otp" class="px-3 py-2 bg-blue-600 text-white rounded">OTP पाठवा</button>
+        </div>
+        <div id="recaptcha-container" class="mt-2"></div>
+        <div class="mt-2 hidden" id="otp-row">
+          <input id="otp-input" class="p-2 border rounded w-2/3" placeholder="OTP code" />
+          <button id="verify-otp" class="px-3 py-2 bg-green-600 text-white rounded">Verify</button>
+        </div>
+      </div>
+      <div id="logged-in" class="hidden text-sm">
+        <div id="user-phone" class="font-medium"></div>
+        <div class="mt-2">
+          <button id="logout" class="px-3 py-2 bg-gray-200 rounded">Logout</button>
+        </div>
+        <div id="user-role" class="mt-2 text-xs text-gray-500"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-3">
+      <button id="tab-in" class="flex-1 py-2 rounded bg-orange-600 text-white">📥 IN</button>
+      <button id="tab-out" class="flex-1 py-2 rounded bg-white shadow">📤 OUT</button>
+      <button id="tab-reports" class="flex-1 py-2 rounded bg-white shadow">📊 Reports</button>
+    </div>
+
+    <!-- IN form -->
+    <div id="panel-in" class="bg-white p-4 rounded shadow mb-4">
+      <form id="in-form" class="space-y-3">
+        <div>
+          <label class="text-sm">तारीख</label>
+          <input id="in-date" type="date" class="w-full p-2 border rounded" />
+        </div>
+        <div>
+          <label class="text-sm">कोणाकडून</label>
+          <input id="in-from" class="w-full p-2 border rounded" placeholder="पुरवठादार/नांव" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="in-total" class="p-2 border rounded" placeholder="एकूण रक्कम" inputmode="numeric" />
+          <input id="in-paid" class="p-2 border rounded" placeholder="भरले (Paid)" inputmode="numeric" />
+        </div>
+        <div>
+          <label class="text-sm">Payment Type</label>
+          <select id="in-paytype" class="w-full p-2 border rounded">
+            <option>Cash</option><option>Online</option><option>Baki</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm">बिल / फोटो (ऐच्छिक)</label>
+          <input id="in-file" type="file" accept="image/*,application/pdf" class="w-full" />
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 py-2 bg-orange-600 text-white rounded">जतन करा</button>
+          <button type="button" id="in-clear" class="flex-1 py-2 bg-gray-200 rounded">क्लिअर</button>
+        </div>
+      </form>
+
+      <div id="recent-in" class="mt-4"></div>
+    </div>
+
+    <!-- OUT form -->
+    <div id="panel-out" class="hidden bg-white p-4 rounded shadow mb-4">
+      <form id="out-form" class="space-y-3">
+        <div>
+          <label class="text-sm">तारीख</label>
+          <input id="out-date" type="date" class="w-full p-2 border rounded" />
+        </div>
+        <div>
+          <label class="text-sm">कोणाला</label>
+          <input id="out-to" class="w-full p-2 border rounded" placeholder="ग्राहक नांव" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="out-total" class="p-2 border rounded" placeholder="एकूण रक्कम" inputmode="numeric" />
+          <input id="out-paid" class="p-2 border rounded" placeholder="भरले (Paid)" inputmode="numeric" />
+        </div>
+        <div>
+          <label class="text-sm">Payment Type</label>
+          <select id="out-paytype" class="w-full p-2 border rounded">
+            <option>Cash</option><option>Online</option><option>Baki</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm">प्रूफ (फोटो / PDF)</label>
+          <input id="out-file" type="file" accept="image/*,application/pdf" class="w-full" />
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded">जतन करा</button>
+          <button type="button" id="out-clear" class="flex-1 py-2 bg-gray-200 rounded">क्लिअर</button>
+        </div>
+      </form>
+
+      <div id="recent-out" class="mt-4"></div>
+    </div>
+
+    <!-- Reports -->
+    <div id="panel-reports" class="hidden bg-white p-4 rounded shadow mb-6">
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <input id="filter-from" type="date" class="p-2 border rounded" />
+        <input id="filter-to" type="date" class="p-2 border rounded" />
+      </div>
+      <input id="filter-name" class="w-full p-2 border rounded mb-3" placeholder="नावाने शोधा" />
+      <div id="summary" class="mb-3"></div>
+      <div id="person-list" class="mb-3"></div>
+      <div class="flex gap-2">
+        <button id="export-csv" class="flex-1 py-2 bg-green-600 text-white rounded">CSV Export</button>
+        <button id="export-pdf" class="flex-1 py-2 bg-gray-200 rounded">PDF Export</button>
+      </div>
+    </div>
+
+    <footer class="text-xs text-gray-500 text-center mt-4">
+      Powered by your Firebase project • Admin phone: +91 7020970727
+    </footer>
+  </div>
+
+<script>
+  // ---------- Firebase config (from user) ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
+    authDomain: "product-buy-sell.firebaseapp.com",
+    projectId: "product-buy-sell",
+    storageBucket: "product-buy-sell.firebasestorage.app",
+    messagingSenderId: "815213852798",
+    appId: "1:815213852798:web:d347aec03aa3a46ba3802f"
+  };
+  // Initialize
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // UI elements
+  const phoneInput = document.getElementById('phone-input');
+  const sendOtpBtn = document.getElementById('send-otp');
+  const otpRow = document.getElementById('otp-row');
+  const otpInput = document.getElementById('otp-input');
+  const verifyOtpBtn = document.getElementById('verify-otp');
+  const loggedOut = document.getElementById('logged-out');
+  const loggedIn = document.getElementById('logged-in');
+  const userPhoneEl = document.getElementById('user-phone');
+  const userRoleEl = document.getElementById('user-role');
+  const logoutBtn = document.getElementById('logout');
+
+  // Tabs
+  const tabIn = document.getElementById('tab-in'), tabOut = document.getElementById('tab-out'), tabReports = document.getElementById('tab-reports');
+  const panelIn = document.getElementById('panel-in'), panelOut = document.getElementById('panel-out'), panelReports = document.getElementById('panel-reports');
+
+  tabIn.onclick = ()=>{ panelIn.classList.remove('hidden'); panelOut.classList.add('hidden'); panelReports.classList.add('hidden'); tabIn.classList.add('bg-orange-600'); tabOut.classList.remove('bg-blue-600'); tabReports.classList.remove('bg-green-600'); }
+  tabOut.onclick = ()=>{ panelOut.classList.remove('hidden'); panelIn.classList.add('hidden'); panelReports.classList.add('hidden'); tabOut.classList.add('bg-blue-600'); tabIn.classList.remove('bg-orange-600'); tabReports.classList.remove('bg-green-600'); }
+  tabReports.onclick = ()=>{ panelReports.classList.remove('hidden'); panelIn.classList.add('hidden'); panelOut.classList.add('hidden'); tabReports.classList.add('bg-green-600'); tabIn.classList.remove('bg-orange-600'); tabOut.classList.remove('bg-blue-600'); loadReports(); }
+
+  // Recaptcha
+  function setupRecaptcha() {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+      window.recaptchaVerifier.render();
+    }
+  }
+
+  sendOtpBtn.addEventListener('click', async ()=>{
+    const num = phoneInput.value.trim();
+    if (!/^[0-9]{10}$/.test(num)) { alert('कृपया 10 अंकी मोबाइल नंबर द्या'); return; }
+    setupRecaptcha();
+    const phoneNumber = '+91' + num;
+    try {
+      const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier);
+      window.confirmationResult = confirmationResult;
+      otpRow.classList.remove('hidden');
+      alert('OTP पाठवला गेला — कृपया तपासा');
+    } catch(e){
+      console.error(e); alert('OTP पाठवताना त्रुटी: ' + e.message);
+    }
+  });
+
+  verifyOtpBtn.addEventListener('click', async ()=>{
+    const code = otpInput.value.trim();
+    if (!code) return alert('OTP टाका');
+    try {
+      const result = await window.confirmationResult.confirm(code);
+      const user = result.user;
+      onLogin(user);
+    } catch(e){ console.error(e); alert('OTP verify त्रुटी: ' + e.message); }
+  });
+
+  logoutBtn.addEventListener('click', ()=> auth.signOut());
+
+  auth.onAuthStateChanged(async (user)=>{
+    if (user) onLogin(user); else onLogout();
+  });
+
+  async function onLogin(user) {
+    loggedOut.classList.add('hidden'); loggedIn.classList.remove('hidden');
+    userPhoneEl.textContent = user.phoneNumber || 'Unknown';
+    // check admin
+    const adminDoc = await db.collection('admins').doc(user.phoneNumber).get();
+    const isAdmin = adminDoc.exists;
+    userRoleEl.textContent = isAdmin ? 'Role: Admin' : 'Role: User';
+    userRoleEl.style.color = isAdmin ? 'green' : 'gray';
+    // enable forms
+    enableForms(true);
+    loadRecent();
+  }
+
+  function onLogout(){
+    loggedOut.classList.remove('hidden'); loggedIn.classList.add('hidden');
+    userPhoneEl.textContent = '';
+    userRoleEl.textContent = '';
+    enableForms(false);
+  }
+
+  function enableForms(enable){
+    document.querySelectorAll('input,select,button').forEach(el=>{
+      // allow auth buttons always
+      if (el.id==='send-otp' || el.id==='verify-otp' || el.id==='logout') return;
+      el.disabled = !enable;
+    });
+  }
+
+  // Initially disable until login
+  enableForms(false);
+
+  // Upload helper
+  async function uploadFile(file,folder){
+    if (!file) return null;
+    const path = folder + '/' + Date.now() + '_' + file.name;
+    const ref = storage.ref().child(path);
+    await ref.put(file);
+    return await ref.getDownloadURL();
+  }
+
+  // IN form submit
+  document.getElementById('in-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const date = document.getElementById('in-date').value || new Date().toISOString().slice(0,10);
+    const from = document.getElementById('in-from').value.trim();
+    const total = Number(document.getElementById('in-total').value) || 0;
+    const paid = Number(document.getElementById('in-paid').value) || 0;
+    const paymentType = document.getElementById('in-paytype').value;
+    const file = document.getElementById('in-file').files[0];
+    if (!from || total===0) { alert('कृपया आवश्यक फील्ड भरा'); return; }
+    const url = await uploadFile(file,'in');
+    await db.collection('in_entries').add({ date, from, total, paid, balance: total-paid, paymentType, fileUrl: url||null, createdAt: Date.now() });
+    alert('IN जतन झाले');
+    loadRecent();
+    document.getElementById('in-form').reset();
+  });
+
+  // OUT submit
+  document.getElementById('out-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const date = document.getElementById('out-date').value || new Date().toISOString().slice(0,10);
+    const to = document.getElementById('out-to').value.trim();
+    const total = Number(document.getElementById('out-total').value) || 0;
+    const paid = Number(document.getElementById('out-paid').value) || 0;
+    const paymentType = document.getElementById('out-paytype').value;
+    const file = document.getElementById('out-file').files[0];
+    if (!to || total===0) { alert('कृपया आवश्यक फील्ड भरा'); return; }
+    const url = await uploadFile(file,'out');
+    await db.collection('out_entries').add({ date, to, total, paid, balance: total-paid, paymentType, fileUrl: url||null, createdAt: Date.now() });
+    alert('OUT जतन झाले');
+    loadRecent();
+    document.getElementById('out-form').reset();
+  });
+
+  // Load recent IN/OUT
+  async function loadRecent(){
+    const inSnap = await db.collection('in_entries').orderBy('createdAt','desc').limit(8).get();
+    const outSnap = await db.collection('out_entries').orderBy('createdAt','desc').limit(8).get();
+    const recentIn = document.getElementById('recent-in');
+    const recentOut = document.getElementById('recent-out');
+    recentIn.innerHTML = '<div class="text-sm font-medium mb-2">अलीकडील IN नोंदी</div>';
+    inSnap.forEach(d=>{
+      const it = d.data();
+      const el = document.createElement('div');
+      el.className='p-2 border rounded mb-2';
+      el.innerHTML = `<div class="font-semibold">${it.from} — ${it.date}</div>
+        <div class="text-xs text-gray-600">Total ₹${it.total} | Paid ₹${it.paid} | Bal ₹${it.balance} | ${it.paymentType}</div>
+        ${it.fileUrl?`<a class="text-xs text-blue-600" href="${it.fileUrl}" target="_blank">बिल पहा</a>`:''}`;
+      recentIn.appendChild(el);
+    });
+    recentOut.innerHTML = '<div class="text-sm font-medium mb-2">अलीकडील OUT नोंदी</div>';
+    outSnap.forEach(d=>{
+      const it = d.data();
+      const el = document.createElement('div');
+      el.className='p-2 border rounded mb-2';
+      el.innerHTML = `<div class="font-semibold">${it.to} — ${it.date}</div>
+        <div class="text-xs text-gray-600">Total ₹${it.total} | Paid ₹${it.paid} | Bal ₹${it.balance} | ${it.paymentType}</div>
+        ${it.fileUrl?`<a class="text-xs text-blue-600" href="${it.fileUrl}" target="_blank">प्रूफ पहा</a>`:''}`;
+      recentOut.appendChild(el);
+    });
+  }
+
+  async function loadReports(){
+    const from = document.getElementById('filter-from').value;
+    const to = document.getElementById('filter-to').value;
+    const nameFilter = document.getElementById('filter-name').value.trim().toLowerCase();
+    const inSnap = await db.collection('in_entries').orderBy('date','desc').get();
+    const outSnap = await db.collection('out_entries').orderBy('date','desc').get();
+    const inList = [], outList = [];
+    inSnap.forEach(d=> inList.push(d.data()));
+    outSnap.forEach(d=> outList.push(d.data()));
+    // filter
+    function keep(it, isIn=true){
+      const itDate = new Date(it.date);
+      if (from){ if (itDate < new Date(from)) return false; }
+      if (to){ const t=new Date(to); t.setHours(23,59,59,999); if (itDate > t) return false; }
+      if (nameFilter){
+        const name = (isIn?it.from:it.to||'').toLowerCase();
+        if (!name.includes(nameFilter)) return false;
+      }
+      return true;
+    }
+    const fin = inList.filter(it=>keep(it,true));
+    const fout = outList.filter(it=>keep(it,false));
+    // totals
+    const sum = arr => arr.reduce((s,a)=> s + (Number(a.total)||0),0);
+    const sumPaid = arr => arr.reduce((s,a)=> s + (Number(a.paid)||0),0);
+    const sumBal = arr => arr.reduce((s,a)=> s + (Number(a.balance)||0),0);
+    const summary = document.getElementById('summary');
+    summary.innerHTML = `<div class="grid grid-cols-2 gap-2">
+      <div class="p-2 bg-gray-50 rounded">IN ₹${sum(fin)}<div class="text-xs">Paid ₹${sumPaid(fin)} | Bal ₹${sumBal(fin)}</div></div>
+      <div class="p-2 bg-gray-50 rounded">OUT ₹${sum(fout)}<div class="text-xs">Paid ₹${sumPaid(fout)} | Bal ₹${sumBal(fout)}</div></div>
+    </div>`;
+    // person-wise
+    const map = {};
+    fin.forEach(it=>{ const name=it.from||'--'; map[name]=map[name]||{in_total:0,in_paid:0,in_bal:0,out_total:0,out_paid:0,out_bal:0}; map[name].in_total += Number(it.total)||0; map[name].in_paid += Number(it.paid)||0; map[name].in_bal += Number(it.balance)||0; });
+    fout.forEach(it=>{ const name=it.to||'--'; map[name]=map[name]||{in_total:0,in_paid:0,in_bal:0,out_total:0,out_paid:0,out_bal:0}; map[name].out_total += Number(it.total)||0; map[name].out_paid += Number(it.paid)||0; map[name].out_bal += Number(it.balance)||0; });
+    const personList = document.getElementById('person-list');
+    personList.innerHTML = '';
+    Object.keys(map).sort().forEach(name=>{
+      const v = map[name];
+      const el = document.createElement('div'); el.className='p-2 border rounded mb-2';
+      el.innerHTML = `<div class="font-semibold">${name}</div><div class="text-xs text-gray-600">IN ₹${v.in_total} (Paid ${v.in_paid}) | OUT ₹${v.out_total} (Paid ${v.out_paid})</div><div class="text-xs">IN Bal ₹${v.in_bal} | OUT Bal ₹${v.out_bal}</div>`;
+      personList.appendChild(el);
+    });
+    // store current lists for export
+    window._report_in = fin; window._report_out = fout;
+  }
+
+  // CSV export
+  document.getElementById('export-csv').addEventListener('click', ()=>{
+    const rows = [['Type','Date','Name','Total','Paid','Balance','PaymentType','FileURL']];
+    (window._report_in||[]).forEach(r=> rows.push(['IN', r.date, r.from, r.total, r.paid, r.balance, r.paymentType, r.fileUrl||'']));
+    (window._report_out||[]).forEach(r=> rows.push(['OUT', r.date, r.to, r.total, r.paid, r.balance, r.paymentType, r.fileUrl||'']));
+    const csv = rows.map(r=> r.map(c=> `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='report.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // PDF export using jsPDF
+  document.getElementById('export-pdf').addEventListener('click', ()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+    doc.text('Inventory Report', 10, 10);
+    let y = 20;
+    const inR = window._report_in||[];
+    const outR = window._report_out||[];
+    doc.text('IN Entries:',10,y); y+=6;
+    inR.slice(0,20).forEach(it=>{ doc.text(`${it.date} ${it.from} ₹${it.total} Paid:${it.paid} Bal:${it.balance}`,10,y); y+=6; if (y>280){ doc.addPage(); y=10; } });
+    doc.addPage(); y=10;
+    doc.text('OUT Entries:',10,y); y+=6;
+    outR.slice(0,20).forEach(it=>{ doc.text(`${it.date} ${it.to} ₹${it.total} Paid:${it.paid} Bal:${it.balance}`,10,y); y+=6; if (y>280){ doc.addPage(); y=10; } });
+    doc.save('report.pdf');
+  });
+
+  // initial load handlers
+  document.addEventListener('DOMContentLoaded', ()=>{ loadRecent(); });
+
+</script>
+</body>
+</html>
