@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>सामान व्यवस्थापन — Final (IN/OUT + Storage + Edit/Delete + Reports)</title>
+<title>सामान व्यवस्थापन — Full Features</title>
 
-<!-- Tailwind for quick styling -->
+<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Firebase compat libs -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
@@ -17,147 +17,126 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#fff7ed; }
-  .card { border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); background: #fff; }
-  .muted { color:#6b7280; font-size:.95rem; }
-  .btn { padding:.6rem 0.8rem; border-radius:10px; font-weight:600; }
-  /* small screens fix */
-  @media (max-width:420px){ .max-w { padding: .75rem; } }
+  body{font-family:Inter,system-ui;background:#fff7ed}
+  .card{border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
+  .muted{color:#6b7280}
+  .btn{padding:.6rem .9rem;border-radius:10px;font-weight:600}
+  @media (max-width:420px){ .max-w {padding:.6rem} }
 </style>
 </head>
 <body class="p-4">
 
 <div class="max-w-lg mx-auto max-w p-4">
   <header class="text-center mb-4">
-    <h1 class="text-2xl font-bold text-amber-700">📦 सामान व्यवस्थापन</h1>
-    <p class="muted">IN / OUT, फोटो अपलोड, Edit/Delete, रिपोर्ट्स — मराठी UI</p>
+    <h1 class="text-2xl font-bold text-amber-700">📦 सामान व्यवस्थापन (Pro)</h1>
+    <p class="muted text-sm">Full features — Ledger, Charts, PDF/Excel, WhatsApp share, PWA</p>
   </header>
 
   <!-- TABS -->
   <div class="flex gap-2 mb-4">
-    <button id="tabIn" class="flex-1 btn bg-amber-600 text-white">IN (घेणे)</button>
-    <button id="tabOut" class="flex-1 btn bg-white border text-amber-700">OUT (देणे)</button>
+    <button id="tabIn" class="flex-1 btn bg-amber-600 text-white">IN</button>
+    <button id="tabOut" class="flex-1 btn bg-white border text-amber-700">OUT</button>
     <button id="tabRep" class="flex-1 btn bg-white border text-amber-700">रिपोर्ट</button>
+    <button id="tabLedger" class="flex-1 btn bg-white border text-amber-700">लेजर</button>
   </div>
 
-  <!-- IN PANEL -->
+  <!-- IN -->
   <section id="panelIn" class="card p-4 mb-4">
-    <h2 class="font-bold text-lg mb-3 text-amber-700">IN — सामान घेतले</h2>
+    <h2 class="font-bold text-lg text-amber-700 mb-3">IN — सामान घेतले</h2>
     <div class="space-y-2">
-      <label class="muted">तारीख</label>
       <input id="inDate" type="date" class="w-full p-2 border rounded" />
-
-      <label class="muted">कोणाकडून</label>
-      <input id="inFrom" class="w-full p-2 border rounded" placeholder="पुरवठादाराचे नाव" />
-
+      <input id="inFrom" placeholder="कोणाकडून" class="w-full p-2 border rounded" />
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="muted">एकूण (₹)</label>
-          <input id="inTotal" type="number" class="w-full p-2 border rounded" />
-        </div>
-        <div>
-          <label class="muted">भरले (₹)</label>
-          <input id="inPaid" type="number" class="w-full p-2 border rounded" />
-        </div>
+        <input id="inTotal" type="number" placeholder="एकूण (₹)" class="p-2 border rounded" />
+        <input id="inPaid" type="number" placeholder="भरले (₹)" class="p-2 border rounded" />
       </div>
-
-      <label class="muted">पेमेंट प्रकार</label>
       <select id="inPayType" class="w-full p-2 border rounded">
         <option>Cash</option><option>Online</option><option>Baki</option>
       </select>
-
-      <label class="muted">बिल / फोटो (ऐच्छिक)</label>
       <input id="inFile" type="file" accept="image/*,application/pdf" class="w-full" />
-
-      <div class="flex gap-2 mt-2">
+      <div class="flex gap-2">
         <button id="btnIn" class="flex-1 bg-amber-600 text-white btn">IN जतन करा</button>
-        <button id="btnInClear" class="flex-1 bg-gray-200 btn">रद्द / साफ करा</button>
+        <button id="btnInClear" class="flex-1 bg-gray-200 btn">रद्द</button>
       </div>
     </div>
 
-    <div class="mt-4">
-      <h3 class="font-semibold">ताज्या IN नोंदी</h3>
-      <div id="recentIn" class="mt-2 text-sm"></div>
-    </div>
+    <h3 class="mt-4 font-semibold">Recent IN</h3>
+    <div id="recentIn" class="mt-2 text-sm"></div>
   </section>
 
-  <!-- OUT PANEL -->
+  <!-- OUT -->
   <section id="panelOut" class="card p-4 mb-4 hidden">
-    <h2 class="font-bold text-lg mb-3 text-blue-700">OUT — सामान दिले</h2>
+    <h2 class="font-bold text-lg text-blue-700 mb-3">OUT — सामान दिले</h2>
     <div class="space-y-2">
-      <label class="muted">तारीख</label>
       <input id="outDate" type="date" class="w-full p-2 border rounded" />
-
-      <label class="muted">कोणाला</label>
-      <input id="outTo" class="w-full p-2 border rounded" placeholder="ग्राहकाचे नाव" />
-
+      <input id="outTo" placeholder="कोणाला" class="w-full p-2 border rounded" />
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="muted">एकूण (₹)</label>
-          <input id="outTotal" type="number" class="w-full p-2 border rounded" />
-        </div>
-        <div>
-          <label class="muted">भरले (₹)</label>
-          <input id="outPaid" type="number" class="w-full p-2 border rounded" />
-        </div>
+        <input id="outTotal" type="number" placeholder="एकूण (₹)" class="p-2 border rounded" />
+        <input id="outPaid" type="number" placeholder="भरले (₹)" class="p-2 border rounded" />
       </div>
-
-      <label class="muted">पेमेंट प्रकार</label>
       <select id="outPayType" class="w-full p-2 border rounded">
         <option>Cash</option><option>Online</option><option>Baki</option>
       </select>
-
-      <label class="muted">बिल / फोटो (ऐच्छिक)</label>
       <input id="outFile" type="file" accept="image/*,application/pdf" class="w-full" />
-
-      <div class="flex gap-2 mt-2">
+      <div class="flex gap-2">
         <button id="btnOut" class="flex-1 bg-blue-600 text-white btn">OUT जतन करा</button>
-        <button id="btnOutClear" class="flex-1 bg-gray-200 btn">रद्द / साफ करा</button>
+        <button id="btnOutClear" class="flex-1 bg-gray-200 btn">रद्द</button>
       </div>
     </div>
 
-    <div class="mt-4">
-      <h3 class="font-semibold">ताज्या OUT नोंदी</h3>
-      <div id="recentOut" class="mt-2 text-sm"></div>
-    </div>
+    <h3 class="mt-4 font-semibold">Recent OUT</h3>
+    <div id="recentOut" class="mt-2 text-sm"></div>
   </section>
 
-  <!-- REPORT PANEL -->
+  <!-- REPORT -->
   <section id="panelRep" class="card p-4 mb-4 hidden">
-    <h2 class="font-bold text-lg mb-3">📊 रिपोर्ट</h2>
+    <h2 class="font-bold text-lg mb-3">रिपोर्ट</h2>
 
-    <div class="grid grid-cols-2 gap-2 mb-3">
+    <div class="grid grid-cols-2 gap-2 mb-2">
       <input id="filterFrom" type="date" class="p-2 border rounded" />
       <input id="filterTo" type="date" class="p-2 border rounded" />
     </div>
+    <input id="filterName" placeholder="नाव शोधा" class="w-full p-2 border rounded mb-2" />
 
-    <input id="filterName" placeholder="नाव शोधा (पुरवठादार/ग्राहक)" class="w-full p-2 border rounded mb-3" />
-
-    <div id="statsBox" class="p-2 border rounded text-sm mb-3"></div>
+    <div id="statsBox" class="p-2 border rounded mb-3 text-sm"></div>
 
     <div class="flex gap-2 mb-2">
-      <button id="exportPdfBtn" class="flex-1 bg-gray-800 text-white p-2 rounded">PDF डाउनलोड</button>
-      <button id="exportXlsxBtn" class="flex-1 bg-green-600 text-white p-2 rounded">Excel डाउनलोड</button>
+      <button id="exportPdfBtn" class="flex-1 bg-gray-800 text-white p-2 rounded">PDF</button>
+      <button id="exportXlsxBtn" class="flex-1 bg-green-600 text-white p-2 rounded">Excel</button>
     </div>
 
     <div class="flex gap-2 mb-2">
       <button id="backupBtn" class="flex-1 bg-purple-600 text-white p-2 rounded">📥 Backup</button>
+      <button id="uploadBackupBtn" class="flex-1 bg-indigo-600 text-white p-2 rounded">🔼 Upload Backup to Storage</button>
       <button id="restoreBtn" class="flex-1 bg-orange-600 text-white p-2 rounded">📤 Restore</button>
       <input id="restoreFileInput" type="file" accept="application/json" class="hidden" />
     </div>
 
-    <button id="dailyPdfBtn" class="w-full bg-red-600 text-white p-2 rounded">📅 आजचा Daily PDF</button>
+    <div class="mt-2 mb-2">
+      <canvas id="chartCanvas" height="160"></canvas>
+    </div>
 
-    <div class="mt-3 text-xs muted">नोट: फोटो अपलोडसाठी Firebase Storage वापरले आहे.</div>
+    <button id="dailyPdfBtn" class="w-full bg-red-600 text-white p-2 rounded">📅 आजचा Daily PDF</button>
+    <div class="mt-2 text-xs muted">WhatsApp share बटन प्रत्येक entry मध्ये मिळेल.</div>
+  </section>
+
+  <!-- LEDGER -->
+  <section id="panelLedger" class="card p-4 mb-4 hidden">
+    <h2 class="font-bold text-lg mb-3">लेजर (Customer / Supplier)</h2>
+    <input id="ledgerSearch" placeholder="नाव शोधा..." class="w-full p-2 border rounded mb-2" />
+    <div id="ledgerList" class="text-sm"></div>
+    <div id="ledgerDetail" class="mt-3 text-sm"></div>
   </section>
 
   <footer class="text-center text-sm text-gray-500 mt-4">© Inventory • Admin: 7020970727</footer>
 </div>
 
 <script>
-/* ------------------- Firebase init (use your config) ------------------- */
+/* ---------- Firebase config (use your config) ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyA3PdBavWlcE3w3QjgyOykv2jkAuFcUWbY",
   authDomain: "product-buy-sell.firebaseapp.com",
@@ -170,35 +149,39 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-/* ------------------- UI refs ------------------- */
-const tabIn = document.getElementById('tabIn'), tabOut = document.getElementById('tabOut'), tabRep = document.getElementById('tabRep');
-const panelIn = document.getElementById('panelIn'), panelOut = document.getElementById('panelOut'), panelRep = document.getElementById('panelRep');
-
+/* ---------- UI refs ---------- */
+const panels = { in: document.getElementById('panelIn'), out: document.getElementById('panelOut'), rep: document.getElementById('panelRep'), ledger: document.getElementById('panelLedger') };
+const tabs = { in: document.getElementById('tabIn'), out: document.getElementById('tabOut'), rep: document.getElementById('tabRep'), ledger: document.getElementById('tabLedger') };
 const inDate = document.getElementById('inDate'), inFrom = document.getElementById('inFrom'), inTotal = document.getElementById('inTotal'), inPaid = document.getElementById('inPaid'), inPayType = document.getElementById('inPayType'), inFile = document.getElementById('inFile'), btnIn = document.getElementById('btnIn'), btnInClear = document.getElementById('btnInClear'), recentIn = document.getElementById('recentIn');
 const outDate = document.getElementById('outDate'), outTo = document.getElementById('outTo'), outTotal = document.getElementById('outTotal'), outPaid = document.getElementById('outPaid'), outPayType = document.getElementById('outPayType'), outFile = document.getElementById('outFile'), btnOut = document.getElementById('btnOut'), btnOutClear = document.getElementById('btnOutClear'), recentOut = document.getElementById('recentOut');
+const filterFrom = document.getElementById('filterFrom'), filterTo = document.getElementById('filterTo'), filterName = document.getElementById('filterName'), statsBox = document.getElementById('statsBox');
+const exportPdfBtn = document.getElementById('exportPdfBtn'), exportXlsxBtn = document.getElementById('exportXlsxBtn'), backupBtn = document.getElementById('backupBtn'), restoreBtn = document.getElementById('restoreBtn'), restoreFileInput = document.getElementById('restoreFileInput'), uploadBackupBtn = document.getElementById('uploadBackupBtn'), dailyPdfBtn = document.getElementById('dailyPdfBtn');
+const ledgerSearch = document.getElementById('ledgerSearch'), ledgerList = document.getElementById('ledgerList'), ledgerDetail = document.getElementById('ledgerDetail');
+const chartCanvas = document.getElementById('chartCanvas').getContext('2d');
 
-const filterFrom = document.getElementById('filterFrom'), filterTo = document.getElementById('filterTo'), filterName = document.getElementById('filterName');
-const statsBox = document.getElementById('statsBox'), exportPdfBtn = document.getElementById('exportPdfBtn'), exportXlsxBtn = document.getElementById('exportXlsxBtn');
-const backupBtn = document.getElementById('backupBtn'), restoreBtn = document.getElementById('restoreBtn'), restoreFileInput = document.getElementById('restoreFileInput'), dailyPdfBtn = document.getElementById('dailyPdfBtn');
-
-/* ------------------- Helpers ------------------- */
+/* ---------- helpers ---------- */
 function showPanel(name){
-  panelIn.classList.add('hidden'); panelOut.classList.add('hidden'); panelRep.classList.add('hidden');
-  tabIn.classList.remove('bg-amber-600','text-white'); tabOut.classList.remove('bg-blue-600','text-white'); tabRep.classList.remove('bg-green-600','text-white');
-  if(name==='in'){ panelIn.classList.remove('hidden'); tabIn.classList.add('bg-amber-600','text-white'); }
-  if(name==='out'){ panelOut.classList.remove('hidden'); tabOut.classList.add('bg-blue-600','text-white'); }
-  if(name==='rep'){ panelRep.classList.remove('hidden'); tabRep.classList.add('bg-green-600','text-white'); loadReports(); }
+  Object.values(panels).forEach(p => p.classList.add('hidden'));
+  panels[name].classList.remove('hidden');
+  Object.values(tabs).forEach(t => t.classList.remove('bg-amber-600','text-white','bg-blue-600','bg-green-600'));
+  if(name==='in'){ tabs.in.classList.add('bg-amber-600','text-white'); }
+  if(name==='out'){ tabs.out.classList.add('bg-blue-600','text-white'); }
+  if(name==='rep'){ tabs.rep.classList.add('bg-green-600','text-white'); loadReports(); }
+  if(name==='ledger'){ tabs.ledger.classList.add('bg-amber-600','text-white'); loadLedger(); }
 }
-tabIn.addEventListener('click', ()=> showPanel('in'));
-tabOut.addEventListener('click', ()=> showPanel('out'));
-tabRep.addEventListener('click', ()=> showPanel('rep'));
+tabs.in.onclick = ()=> showPanel('in');
+tabs.out.onclick = ()=> showPanel('out');
+tabs.rep.onclick = ()=> showPanel('rep');
+tabs.ledger.onclick = ()=> showPanel('ledger');
 showPanel('in');
 
-function toast(msg){ alert(msg); }
+function toast(m){ alert(m); }
 function fmt(n){ return Number(n||0).toFixed(2); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function debounce(fn,t=300){ let id; return (...a)=>{ clearTimeout(id); id=setTimeout(()=>fn(...a),t); }; }
 
-/* ------------------- File upload helper ------------------- */
+/* ---------- file upload ---------- */
 async function uploadFile(file, folder){
   if(!file) return null;
   const path = `${folder}/${Date.now()}_${uid()}_${file.name.replaceAll(' ','_')}`;
@@ -207,39 +190,35 @@ async function uploadFile(file, folder){
   return await ref.getDownloadURL();
 }
 
-/* ------------------- Delete storage file by URL ------------------- */
+/* ---------- delete file by url ---------- */
 async function deleteFileByUrl(url){
   if(!url) return;
   try{
     const ref = storage.refFromURL(url);
     await ref.delete();
-  }catch(e){
-    console.warn('deleteFileErr', e.message || e);
-  }
+  }catch(e){ console.warn('deleteFileErr', e); }
 }
 
-/* ------------------- Edit state ------------------- */
-let editInId = null;
-let editOutId = null;
+/* ---------- edit state ---------- */
+let editInId = null, editOutId = null;
 
-/* ------------------- IN Save / Update ------------------- */
+/* ---------- IN save/update ---------- */
 btnIn.addEventListener('click', async ()=>{
   const date = inDate.value || new Date().toISOString().slice(0,10);
-  const from = (inFrom.value || '').trim();
-  const total = Number(inTotal.value) || 0;
-  const paid = Number(inPaid.value) || 0;
+  const from = (inFrom.value||'').trim();
+  const total = Number(inTotal.value)||0;
+  const paid = Number(inPaid.value)||0;
   const payType = inPayType.value || 'Cash';
   const file = inFile.files[0];
 
-  if(!from){ return toast('कृपया "कोणाकडून" भरावे'); }
+  if(!from) return toast('कृपया "कोणाकडून" भरा');
 
   const payload = { date, from, total, paid, balance: total - paid, payType, createdAt: Date.now() };
 
   try{
-    // If updating existing -> if new file uploaded, upload and delete old file
     if(editInId){
-      const docRef = db.collection('in_entries').doc(editInId);
-      const doc = await docRef.get();
+      const ref = db.collection('in_entries').doc(editInId);
+      const doc = await ref.get();
       const old = doc.data();
       if(file){
         const newUrl = await uploadFile(file,'in');
@@ -248,41 +227,35 @@ btnIn.addEventListener('click', async ()=>{
       } else if(old && old.fileURL){
         payload.fileURL = old.fileURL;
       }
-      await docRef.update(payload);
-      toast('IN नोंद अपडेट झाली');
-      editInId = null;
-      btnIn.textContent = 'IN जतन करा';
+      await ref.update(payload);
+      toast('IN अपडेट झाले');
+      editInId = null; btnIn.textContent = 'IN जतन करा';
     } else {
       if(file) payload.fileURL = await uploadFile(file,'in');
       await db.collection('in_entries').add(payload);
-      toast('IN जतन झाली');
+      toast('IN जतन झाले');
     }
-    inFormReset();
-    loadRecent();
-    loadReports();
-  }catch(e){
-    console.error(e);
-    toast('IN सेवेत त्रुटी: ' + (e.message || e));
-  }
+    inFormReset(); loadRecent(); loadReports();
+  }catch(e){ console.error(e); toast('IN error: '+(e.message||e)); }
 });
 
-/* ------------------- OUT Save / Update ------------------- */
+/* ---------- OUT save/update ---------- */
 btnOut.addEventListener('click', async ()=>{
   const date = outDate.value || new Date().toISOString().slice(0,10);
-  const to = (outTo.value || '').trim();
-  const total = Number(outTotal.value) || 0;
-  const paid = Number(outPaid.value) || 0;
+  const to = (outTo.value||'').trim();
+  const total = Number(outTotal.value)||0;
+  const paid = Number(outPaid.value)||0;
   const payType = outPayType.value || 'Cash';
   const file = outFile.files[0];
 
-  if(!to){ return toast('कृपया "कोणाला" भरावे'); }
+  if(!to) return toast('कृपया "कोणाला" भरा');
 
   const payload = { date, to, total, paid, balance: total - paid, payType, createdAt: Date.now() };
 
   try{
     if(editOutId){
-      const docRef = db.collection('out_entries').doc(editOutId);
-      const doc = await docRef.get();
+      const ref = db.collection('out_entries').doc(editOutId);
+      const doc = await ref.get();
       const old = doc.data();
       if(file){
         const newUrl = await uploadFile(file,'out');
@@ -291,220 +264,231 @@ btnOut.addEventListener('click', async ()=>{
       } else if(old && old.fileURL){
         payload.fileURL = old.fileURL;
       }
-      await docRef.update(payload);
-      toast('OUT नोंद अपडेट झाली');
-      editOutId = null;
-      btnOut.textContent = 'OUT जतन करा';
+      await ref.update(payload);
+      toast('OUT अपडेट झाले');
+      editOutId = null; btnOut.textContent = 'OUT जतन करा';
     } else {
       if(file) payload.fileURL = await uploadFile(file,'out');
       await db.collection('out_entries').add(payload);
-      toast('OUT जतन झाली');
+      toast('OUT जतन झाले');
     }
-    outFormReset();
-    loadRecent();
-    loadReports();
-  }catch(e){
-    console.error(e);
-    toast('OUT सेवेत त्रुटी: ' + (e.message || e));
-  }
+    outFormReset(); loadRecent(); loadReports();
+  }catch(e){ console.error(e); toast('OUT error: '+(e.message||e)); }
 });
 
-/* ------------------- Reset helpers ------------------- */
-function inFormReset(){
-  inDate.value=''; inFrom.value=''; inTotal.value=''; inPaid.value=''; inPayType.value='Cash'; inFile.value=null;
-}
-function outFormReset(){
-  outDate.value=''; outTo.value=''; outTotal.value=''; outPaid.value=''; outPayType.value='Cash'; outFile.value=null;
-}
+/* ---------- reset forms ---------- */
+function inFormReset(){ inDate.value=''; inFrom.value=''; inTotal.value=''; inPaid.value=''; inPayType.value='Cash'; inFile.value=null; }
+function outFormReset(){ outDate.value=''; outTo.value=''; outTotal.value=''; outPaid.value=''; outPayType.value='Cash'; outFile.value=null; }
 
-/* ------------------- Load Recent with Edit/Delete ------------------- */
+/* ---------- load recent with edit/delete and whatsapp share ---------- */
 async function loadRecent(){
   recentIn.innerHTML = '<div class="text-sm text-gray-500">लोड करत आहे…</div>';
   recentOut.innerHTML = '<div class="text-sm text-gray-500">लोड करत आहे…</div>';
   try{
-    const inSnap = await db.collection('in_entries').orderBy('createdAt','desc').limit(10).get();
+    const inSnap = await db.collection('in_entries').orderBy('createdAt','desc').limit(12).get();
     let htmlIn = '';
     inSnap.forEach(d=>{
-      const id = d.id;
-      const v = d.data();
-      htmlIn += `<div class="flex justify-between items-center p-2 border rounded mb-2">
+      const id = d.id; const v = d.data();
+      htmlIn += `<div class="flex justify-between items-start p-2 border rounded mb-2">
         <div>
-          <div><b>₹${fmt(v.total)} </b> | ${escapeHtml(v.from||'')}</div>
-          <div class="text-xs text-gray-600">${v.date || ''} • Paid ₹${fmt(v.paid)} • Bal ₹${fmt(v.balance)}</div>
+          <div class="font-semibold">₹${fmt(v.total)} • ${escapeHtml(v.from)}</div>
+          <div class="text-xs muted">${v.date || ''} • Paid ₹${fmt(v.paid)} • Bal ₹${fmt(v.balance)}</div>
         </div>
-        <div class="flex flex-col gap-1 ml-2">
-          <button class="text-sm text-blue-600" onclick="editIn('${id}')">Edit</button>
-          <button class="text-sm text-red-600" onclick="deleteIn('${id}')">Delete</button>
-          ${v.fileURL ? `<a class="text-xs text-amber-600" href="${v.fileURL}" target="_blank">View</a>` : ''}
+        <div class="flex flex-col gap-2 items-end">
+          <button class="text-xs text-blue-600" onclick="editIn('${id}')">Edit</button>
+          <button class="text-xs text-red-600" onclick="deleteIn('${id}')">Delete</button>
+          ${v.fileURL?`<a class="text-xs text-amber-600" href="${v.fileURL}" target="_blank">View</a>`:''}
+          <button class="text-xs text-green-700" onclick="shareWhatsApp('IN', '${id}')">WhatsApp</button>
         </div>
       </div>`;
     });
     recentIn.innerHTML = htmlIn || '<div class="text-sm text-gray-500">कोणतीही IN नोंद नाही.</div>';
 
-    const outSnap = await db.collection('out_entries').orderBy('createdAt','desc').limit(10).get();
+    const outSnap = await db.collection('out_entries').orderBy('createdAt','desc').limit(12).get();
     let htmlOut = '';
     outSnap.forEach(d=>{
-      const id = d.id;
-      const v = d.data();
-      htmlOut += `<div class="flex justify-between items-center p-2 border rounded mb-2">
+      const id = d.id; const v = d.data();
+      htmlOut += `<div class="flex justify-between items-start p-2 border rounded mb-2">
         <div>
-          <div><b>₹${fmt(v.total)} </b> | ${escapeHtml(v.to||'')}</div>
-          <div class="text-xs text-gray-600">${v.date || ''} • Paid ₹${fmt(v.paid)} • Bal ₹${fmt(v.balance)}</div>
+          <div class="font-semibold">₹${fmt(v.total)} • ${escapeHtml(v.to)}</div>
+          <div class="text-xs muted">${v.date || ''} • Paid ₹${fmt(v.paid)} • Bal ₹${fmt(v.balance)}</div>
         </div>
-        <div class="flex flex-col gap-1 ml-2">
-          <button class="text-sm text-blue-600" onclick="editOut('${id}')">Edit</button>
-          <button class="text-sm text-red-600" onclick="deleteOut('${id}')">Delete</button>
-          ${v.fileURL ? `<a class="text-xs text-amber-600" href="${v.fileURL}" target="_blank">View</a>` : ''}
+        <div class="flex flex-col gap-2 items-end">
+          <button class="text-xs text-blue-600" onclick="editOut('${id}')">Edit</button>
+          <button class="text-xs text-red-600" onclick="deleteOut('${id}')">Delete</button>
+          ${v.fileURL?`<a class="text-xs text-amber-600" href="${v.fileURL}" target="_blank">View</a>`:''}
+          <button class="text-xs text-green-700" onclick="shareWhatsApp('OUT', '${id}')">WhatsApp</button>
         </div>
       </div>`;
     });
     recentOut.innerHTML = htmlOut || '<div class="text-sm text-gray-500">कोणतीही OUT नोंद नाही.</div>';
-
-  }catch(e){ console.error(e); recentIn.innerHTML = '<div class="text-sm text-red-500">लोड त्रुटी</div>'; recentOut.innerHTML = '<div class="text-sm text-red-500">लोड त्रुटी</div>'; }
+  }catch(e){ console.error(e); recentIn.innerHTML = recentOut.innerHTML = '<div class="text-sm text-red-500">लोड त्रुटी</div>'; }
 }
 window.loadRecent = loadRecent;
 
-/* ------------------- Edit / Delete functions ------------------- */
+/* ---------- edit/delete implementations ---------- */
 window.editIn = async function(id){
   try{
     const doc = await db.collection('in_entries').doc(id).get();
     const v = doc.data();
-    inDate.value = v.date || '';
-    inFrom.value = v.from || '';
-    inTotal.value = v.total || '';
-    inPaid.value = v.paid || '';
-    inPayType.value = v.payType || 'Cash';
-    editInId = id;
-    btnIn.textContent = 'Update IN';
-    showPanel('in');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){ console.error(e); toast('Edit error'); }
+    inDate.value = v.date || ''; inFrom.value = v.from || ''; inTotal.value = v.total||''; inPaid.value = v.paid||''; inPayType.value = v.payType||'Cash';
+    editInId = id; btnIn.textContent = 'Update IN'; showPanel('in'); window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){ console.error(e); toast('Edit त्रुटी'); }
 };
-
 window.editOut = async function(id){
   try{
     const doc = await db.collection('out_entries').doc(id).get();
     const v = doc.data();
-    outDate.value = v.date || '';
-    outTo.value = v.to || '';
-    outTotal.value = v.total || '';
-    outPaid.value = v.paid || '';
-    outPayType.value = v.payType || 'Cash';
-    editOutId = id;
-    btnOut.textContent = 'Update OUT';
-    showPanel('out');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){ console.error(e); toast('Edit error'); }
+    outDate.value = v.date || ''; outTo.value = v.to || ''; outTotal.value = v.total||''; outPaid.value = v.paid||''; outPayType.value = v.payType||'Cash';
+    editOutId = id; btnOut.textContent = 'Update OUT'; showPanel('out'); window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){ console.error(e); toast('Edit त्रुटी'); }
 };
 
 window.deleteIn = async function(id){
-  if(!confirm('ही IN नोंद हटवायची?')) return;
+  if(!confirm('ही IN नोंद हटवायची आहे का?')) return;
   try{
-    const doc = await db.collection('in_entries').doc(id).get();
-    const v = doc.data();
+    const doc = await db.collection('in_entries').doc(id).get(); const v = doc.data();
     if(v && v.fileURL) await deleteFileByUrl(v.fileURL);
     await db.collection('in_entries').doc(id).delete();
-    toast('IN नोंद हटवली');
-    loadRecent(); loadReports();
+    toast('IN हटवली');
+    loadRecent(); loadReports(); loadLedger();
   }catch(e){ console.error(e); toast('Delete error'); }
 };
-
 window.deleteOut = async function(id){
-  if(!confirm('ही OUT नोंद हटवायची?')) return;
+  if(!confirm('ही OUT नोंद हटवायची आहे का?')) return;
   try{
-    const doc = await db.collection('out_entries').doc(id).get();
-    const v = doc.data();
+    const doc = await db.collection('out_entries').doc(id).get(); const v = doc.data();
     if(v && v.fileURL) await deleteFileByUrl(v.fileURL);
     await db.collection('out_entries').doc(id).delete();
-    toast('OUT नोंद हटवली');
-    loadRecent(); loadReports();
+    toast('OUT हटवली');
+    loadRecent(); loadReports(); loadLedger();
   }catch(e){ console.error(e); toast('Delete error'); }
 };
 
-/* ------------------- Reports (filter + summary) ------------------- */
+/* ---------- WhatsApp share ---------- */
+async function shareWhatsApp(type, id){
+  try{
+    let doc;
+    if(type==='IN') doc = await db.collection('in_entries').doc(id).get();
+    else doc = await db.collection('out_entries').doc(id).get();
+    const v = doc.data();
+    if(!v) return toast('डेटा मिळाला नाही');
+    const name = v.from || v.to || '';
+    const text = `${type} Entry\nName: ${name}\nDate: ${v.date || ''}\nTotal: ₹${fmt(v.total)}\nPaid: ₹${fmt(v.paid)}\nBalance: ₹${fmt(v.balance)}\n${v.fileURL ? 'बिल: ' + v.fileURL : ''}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url,'_blank');
+  }catch(e){ console.error(e); toast('Share error'); }
+}
+
+/* ---------- Reports & Chart ---------- */
+let chartInstance = null;
 async function loadReports(){
   statsBox.innerHTML = 'लोड करत आहे...';
   try{
-    const name = (filterName.value || '').trim().toLowerCase();
+    const name = (filterName.value||'').trim().toLowerCase();
     const from = filterFrom.value || null;
     const to = filterTo.value || null;
 
     const inSnap = await db.collection('in_entries').orderBy('date','desc').get();
     const outSnap = await db.collection('out_entries').orderBy('date','desc').get();
-
-    let IN = inSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    let OUT = outSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    let IN = inSnap.docs.map(d=>({id:d.id,...d.data()}));
+    let OUT = outSnap.docs.map(d=>({id:d.id,...d.data()}));
 
     if(name){
       IN = IN.filter(i => (i.from||'').toLowerCase().includes(name));
       OUT = OUT.filter(o => (o.to||'').toLowerCase().includes(name));
     }
-    if(from) { IN = IN.filter(i => (i.date||'') >= from); OUT = OUT.filter(o => (o.date||'') >= from); }
-    if(to) { IN = IN.filter(i => (i.date||'') <= to); OUT = OUT.filter(o => (o.date||'') <= to); }
+    if(from){ IN = IN.filter(i=> (i.date||'') >= from); OUT = OUT.filter(o=> (o.date||'') >= from); }
+    if(to){ IN = IN.filter(i=> (i.date||'') <= to); OUT = OUT.filter(o=> (o.date||'') <= to); }
 
-    // store for exports
-    window._reportIn = IN;
-    window._reportOut = OUT;
+    window._reportIn = IN; window._reportOut = OUT;
 
     const sumIn = IN.reduce((a,b)=>a+Number(b.total||0),0);
     const sumInPaid = IN.reduce((a,b)=>a+Number(b.paid||0),0);
     const sumOut = OUT.reduce((a,b)=>a+Number(b.total||0),0);
     const sumOutPaid = OUT.reduce((a,b)=>a+Number(b.paid||0),0);
 
-    statsBox.innerHTML = `<div class="p-2">
-      <div><b>IN Total:</b> ₹${fmt(sumIn)} &nbsp; <b>Paid:</b> ₹${fmt(sumInPaid)} &nbsp; <b>Bal:</b> ₹${fmt(sumIn - sumInPaid)}</div>
-      <div class="mt-2"><b>OUT Total:</b> ₹${fmt(sumOut)} &nbsp; <b>Paid:</b> ₹${fmt(sumOutPaid)} &nbsp; <b>Bal:</b> ₹${fmt(sumOut - sumOutPaid)}</div>
-    </div>`;
+    statsBox.innerHTML = `<div><b>IN:</b> ₹${fmt(sumIn)} Paid: ₹${fmt(sumInPaid)} Bal: ₹${fmt(sumIn-sumInPaid)}</div>
+      <div class="mt-2"><b>OUT:</b> ₹${fmt(sumOut)} Paid: ₹${fmt(sumOutPaid)} Bal: ₹${fmt(sumOut-sumOutPaid)}</div>`;
 
-  }catch(e){ console.error(e); statsBox.innerHTML = '<div class="text-red-500">लोड त्रुटी</div>'; }
+    // Chart: month-wise totals for last 6 months
+    const months = {}; // yyyy-mm => {in:0,out:0}
+    function addMonth(key, t, amt){ if(!months[key]) months[key]={in:0,out:0}; months[key][t]+=amt; }
+    const pushMonth = (d, t, amt)=>{ const date = new Date(d); const k = date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0'); addMonth(k,t,amt); };
+    IN.forEach(i=> pushMonth(i.date,'in', Number(i.total||0)));
+    OUT.forEach(o=> pushMonth(o.date,'out', Number(o.total||0)));
+    const keys = Object.keys(months).sort().slice(-6);
+    const labels = keys.map(k=>{ const [y,m]=k.split('-'); return `${m}/${y.slice(2)}`; });
+    const inData = keys.map(k=>months[k].in || 0);
+    const outData = keys.map(k=>months[k].out || 0);
+
+    if(chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(chartCanvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label:'IN', data: inData, backgroundColor:'rgba(34,197,94,0.7)' },
+          { label:'OUT', data: outData, backgroundColor:'rgba(59,130,246,0.7)' }
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false }
+    });
+
+  }catch(e){ console.error(e); statsBox.innerHTML = '<div class="text-red-500">रिपोर्ट लोड त्रुटी</div>'; }
 }
-filterName.addEventListener('input', ()=> debounce(loadReports,300));
+filterName.addEventListener('input', debounce(loadReports,300));
 filterFrom.addEventListener('change', loadReports);
 filterTo.addEventListener('change', loadReports);
-window.loadReports = loadReports;
 
-/* ------------------- PDF Export ------------------- */
+/* ---------- PDF Export ---------- */
 exportPdfBtn.addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p','pt','a4');
-  let y = 40;
-  doc.setFontSize(16);
-  doc.text("Inventory Report", 40, y); y+=24;
-  doc.setFontSize(11);
-
-  const rows = [...(window._reportIn||[]).map(r=>({type:'IN',...r})), ...(window._reportOut||[]).map(r=>({type:'OUT',...r}))];
-  if(rows.length===0) return toast('रिपोर्ट रिकामी आहे — कृपया लोड करा.');
-
-  rows.forEach(r => {
-    const line = `${r.type} | ${r.date || ''} | ${r.from || r.to || ''} | ₹${fmt(r.total)} | Paid ₹${fmt(r.paid)} | Bal ₹${fmt(r.balance)}`;
-    doc.text(line, 40, y); y += 14;
-    if(y > 760){ doc.addPage(); y = 40; }
+  let y=40; doc.setFontSize(16); doc.text('Inventory Report', 40, y); y+=24; doc.setFontSize(11);
+  const rows = [...(window._reportIn||[]).map(r=>({t:'IN',...r})), ...(window._reportOut||[]).map(r=>({t:'OUT',...r}))];
+  if(rows.length===0) return toast('रिपोर्ट रिकामी आहे — कृपया लोड करा');
+  rows.forEach(r=>{
+    const line = `${r.t} | ${r.date||''} | ${r.from||r.to||''} | ₹${fmt(r.total)} | Paid ₹${fmt(r.paid)} | Bal ₹${fmt(r.balance)}`;
+    doc.text(line, 40, y); y+=14; if(y>760){ doc.addPage(); y=40; }
   });
-
   doc.save(`Report_${Date.now()}.pdf`);
 });
 
-/* ------------------- Excel Export ------------------- */
+/* ---------- Excel Export ---------- */
 exportXlsxBtn.addEventListener('click', ()=>{
   const wb = XLSX.utils.book_new();
-  const rows = [["Type","Date","Name","Total","Paid","Balance","PayType","FileURL"]];
-  (window._reportIn||[]).forEach(i => rows.push(["IN", i.date||'', i.from||'', i.total||0, i.paid||0, i.balance||0, i.payType||'', i.fileURL||'']));
-  (window._reportOut||[]).forEach(i => rows.push(["OUT", i.date||'', i.to||'', i.total||0, i.paid||0, i.balance||0, i.payType||'', i.fileURL||'']));
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "Report");
-  XLSX.writeFile(wb, `Report_${Date.now()}.xlsx`);
+  const rows = [['Type','Date','Name','Total','Paid','Balance','PayType','FileURL']];
+  (window._reportIn||[]).forEach(i=> rows.push(['IN', i.date||'', i.from||'', i.total||0, i.paid||0, i.balance||0, i.payType||'', i.fileURL||'']));
+  (window._reportOut||[]).forEach(o=> rows.push(['OUT', o.date||'', o.to||'', o.total||0, o.paid||0, o.balance||0, o.payType||'', o.fileURL||'']));
+  const ws = XLSX.utils.aoa_to_sheet(rows); XLSX.utils.book_append_sheet(wb,ws,'Report'); XLSX.writeFile(wb,`Report_${Date.now()}.xlsx`);
 });
 
-/* ------------------- Backup / Restore ------------------- */
+/* ---------- Backup / Restore ---------- */
 backupBtn.addEventListener('click', async ()=>{
   try{
     const inSnap = await db.collection('in_entries').get();
     const outSnap = await db.collection('out_entries').get();
-    const data = { backupDate: new Date().toISOString(), in: inSnap.docs.map(d=>({id:d.id,...d.data()})), out: outSnap.docs.map(d=>({id:d.id,...d.data()})) };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `InventoryBackup_${Date.now()}.json`; a.click();
+    const data = { backupDate:new Date().toISOString(), in: inSnap.docs.map(d=>({id:d.id,...d.data()})), out: outSnap.docs.map(d=>({id:d.id,...d.data()})) };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_${Date.now()}.json`; a.click();
     toast('Backup डाउनलोड झाला');
   }catch(e){ console.error(e); toast('Backup error'); }
+});
+
+/* Upload backup file to Storage */
+uploadBackupBtn.addEventListener('click', async ()=>{
+  try{
+    const inSnap = await db.collection('in_entries').get();
+    const outSnap = await db.collection('out_entries').get();
+    const data = { backupDate:new Date().toISOString(), in: inSnap.docs.map(d=>({id:d.id,...d.data()})), out: outSnap.docs.map(d=>({id:d.id,...d.data()})) };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const path = `backups/backup_${Date.now()}.json`;
+    const ref = storage.ref().child(path);
+    await ref.put(blob);
+    const url = await ref.getDownloadURL();
+    toast('Backup uploaded to Storage');
+  }catch(e){ console.error(e); toast('Upload backup error'); }
 });
 
 restoreBtn.addEventListener('click', ()=> restoreFileInput.click());
@@ -513,40 +497,105 @@ restoreFileInput.addEventListener('change', async (ev)=>{
   try{
     const txt = await f.text(); const json = JSON.parse(txt);
     if(!json.in || !json.out) return toast('Invalid backup file');
-    if(!confirm('Restore केल्याने डेटा परत भरला जाईल. चालू ठेवायचे?')) return;
-    for(const it of json.in){ await db.collection('in_entries').doc(it.id).set(it); }
-    for(const it of json.out){ await db.collection('out_entries').doc(it.id).set(it); }
-    toast('Restore पूर्ण झाले');
-    loadRecent(); loadReports();
+    if(!confirm('Restore केल्याने DB मध्ये फाईलच्या नुसार डेटा set केला जाईल. चालू ठेवायचे?')) return;
+    for(const it of json.in) await db.collection('in_entries').doc(it.id).set(it);
+    for(const it of json.out) await db.collection('out_entries').doc(it.id).set(it);
+    toast('Restore पूर्ण झाले'); loadRecent(); loadReports(); loadLedger();
   }catch(e){ console.error(e); toast('Restore error'); }
 });
 
-/* ------------------- Daily PDF ------------------- */
+/* ---------- Daily PDF ---------- */
 dailyPdfBtn.addEventListener('click', async ()=>{
   try{
     const today = new Date().toISOString().slice(0,10);
     filterFrom.value = today; filterTo.value = today;
     await loadReports();
-    // reuse export pdf
     exportPdfBtn.click();
   }catch(e){ console.error(e); toast('Daily PDF error'); }
 });
 
-/* ------------------- Delete helpers above used ------------------- */
+/* ---------- Ledger (person-wise) ---------- */
+async function loadLedger(){
+  ledgerList.innerHTML = 'लोड करत आहे...'; ledgerDetail.innerHTML = '';
+  try{
+    const inSnap = await db.collection('in_entries').get();
+    const outSnap = await db.collection('out_entries').get();
+    const map = {}; // name -> {in:0,out:0,paidIn:0,paidOut:0, tx:[]}
+    inSnap.forEach(d=>{
+      const v = d.data(); const name = (v.from||'Unknown').trim();
+      if(!map[name]) map[name]={in:0,out:0,paidIn:0,paidOut:0,tx:[]};
+      map[name].in += Number(v.total||0); map[name].paidIn += Number(v.paid||0);
+      map[name].tx.push({type:'IN',date:v.date||'',amt:v.total||0,paid:v.paid||0,id:d.id});
+    });
+    outSnap.forEach(d=>{
+      const v = d.data(); const name = (v.to||'Unknown').trim();
+      if(!map[name]) map[name]={in:0,out:0,paidIn:0,paidOut:0,tx:[]};
+      map[name].out += Number(v.total||0); map[name].paidOut += Number(v.paid||0);
+      map[name].tx.push({type:'OUT',date:v.date||'',amt:v.total||0,paid:v.paid||0,id:d.id});
+    });
+    const names = Object.keys(map).sort();
+    if(names.length===0) { ledgerList.innerHTML = '<div class="text-sm text-gray-500">कोणतीही नोंद नाही.</div>'; return; }
+    let html = '';
+    names.forEach(n=>{
+      const m = map[n];
+      const balance = (m.out - m.paidOut) - (m.in - m.paidIn); // net: positive means customer owes?
+      html += `<div class="p-2 border rounded mb-2 flex justify-between items-center">
+        <div><b>${escapeHtml(n)}</b><div class="text-xs muted">IN ₹${fmt(m.in)} | OUT ₹${fmt(m.out)}</div></div>
+        <div><button class="text-sm text-blue-600" onclick="showLedgerDetail('${encodeURIComponent(n)}')">View</button></div>
+      </div>`;
+    });
+    ledgerList.innerHTML = html;
+    window._ledgerMap = map;
+  }catch(e){ console.error(e); ledgerList.innerHTML = '<div class="text-red-500">लोड त्रुटी</div>'; }
+}
 
-/* ------------------- Utilities ------------------- */
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function debounce(fn, t){ let timer; return (...a)=>{ clearTimeout(timer); timer=setTimeout(()=>fn(...a), t||300); }; }
+window.showLedgerDetail = function(encodedName){
+  const name = decodeURIComponent(encodedName);
+  const m = window._ledgerMap && window._ledgerMap[name];
+  if(!m) return;
+  let html = `<div><h3 class="font-semibold">${escapeHtml(name)}</h3>`;
+  html += `<div class="text-xs muted">IN ₹${fmt(m.in)} | PaidIn ₹${fmt(m.paidIn)} | OUT ₹${fmt(m.out)} | PaidOut ₹${fmt(m.paidOut)}</div>`;
+  html += `<div class="mt-2"><b>Transactions:</b></div>`;
+  const tx = m.tx.sort((a,b)=> b.date.localeCompare(a.date));
+  tx.forEach(t=> html += `<div class="p-2 border rounded mb-1"><b>${t.type}</b> ${t.date} ₹${fmt(t.amt)} Paid ₹${fmt(t.paid)}</div>`);
+  html += `<div class="mt-2"><button class="bg-amber-600 text-white p-2 rounded" onclick="shareLedger('${encodeURIComponent(name)}')">Share Ledger via WhatsApp</button></div>`;
+  html += `</div>`;
+  ledgerDetail.innerHTML = html;
+};
 
-/* ------------------- Init defaults ------------------- */
-(function init(){
+async function shareLedger(encodedName){
+  const name = decodeURIComponent(encodedName);
+  const m = window._ledgerMap && window._ledgerMap[name];
+  if(!m) return;
+  let txt = `Ledger: ${name}\nIN ₹${fmt(m.in)} PaidIn ₹${fmt(m.paidIn)}\nOUT ₹${fmt(m.out)} PaidOut ₹${fmt(m.paidOut)}\nTransactions:\n`;
+  m.tx.forEach(t=> txt += `${t.type} ${t.date} ₹${fmt(t.amt)} Paid ₹${fmt(t.paid)}\n`);
+  const url = `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  window.open(url,'_blank');
+}
+
+/* ---------- Init: load recent & reports ---------- */
+loadRecent(); loadReports();
+
+/* ---------- PWA: register service worker via blob (single-file) ---------- */
+if('serviceWorker' in navigator){
+  const swCode = `
+    self.addEventListener('install', event => { self.skipWaiting(); });
+    self.addEventListener('activate', event => { self.clients.claim(); });
+    self.addEventListener('fetch', event => {
+      // simple network-first caching for same origin
+      event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));
+    });
+  `;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(e=>console.warn('sw register failed', e));
+}
+
+/* ---------- utility: ensure default dates ---------- */
+(function setDefaults(){
   const today = new Date().toISOString().slice(0,10);
-  inDate.value = today; outDate.value = today;
-  inPayType.value = 'Cash'; outPayType.value = 'Cash';
-  // ensure reports array present
-  window._reportIn = []; window._reportOut = [];
-  loadRecent();
-  loadReports();
+  if(!inDate.value) inDate.value = today;
+  if(!outDate.value) outDate.value = today;
 })();
 </script>
 </body>
